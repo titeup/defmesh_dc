@@ -99,10 +99,21 @@ In section 4 we explores the related works before presenting in section 5 the fu
 
 \section{Related Works}
 \subsection{Assembling}
+ The matrix assembling on an unstructured mesh is non trivial to parallelize. Contribution of neighbor elements are reduced on shared edges which create concurrency issues.
+ This concept is illustrated below.
+\begin{figure}[htp]
+ \centering
+ \label{fig0}
+ \includegraphics[scale=0.2]{2D_assembly.png}
+ \caption{2D assembling example}
+\end{figure}
+
+ Therefore, threads handling elements sharing an edge must synchronize or some contributions may be lost. To create parallelism, one must create independent domain to work on.
+ In that case we envision two different approaches, a state-of-the-art coloring approach and our proposition of D\&C based on a topological recursive dissection.
 \subsection{Methods}
 \begin{itemize}
  \item CSR and coloring (ElemColor)\\
- Coloring principle is very simple, two elements sharing an edge must have a different color.
+ A common approach for FEM assembly step is the coloring. Coloring principle is very simple, two elements sharing an edge must have a different color.
  Thereby, all elements of a same color have not any common edge and can be computed in parallel.
  However, each color must be treated one after the other. Moreover it suffers from a bad data locality since elements of a same color are distant from each other.
  This approach is illustrated in the figure below.
@@ -153,7 +164,7 @@ This partitionment is illustrated in the figure below.
  \centering
  \label{fig2}
  \includegraphics[scale=0.25]{DC_approach.png}
- \caption{Coloring approach}
+ \caption{D\&C approach}
 \end{figure}
 All the sub-domains are split recursively, offering a large amount of parallelism.
 This process results in a recursive partition tree where each leaf is associated with an independent Cilk task.
@@ -168,7 +179,7 @@ After left and right sub-domains are done, the corresponding Cilk tasks synchron
  \centering
  \label{fig3}
  \includegraphics[scale=0.25]{Recursion_tree.png}
- \caption{Coloring approach}
+ \caption{Recursion tree}
 \end{figure}
 In order to increase the data locality, we permute the nodes and the elements arrays. Indeed the elements can be consecutive in memory inside each sub-domain,
 improving intra-task locality.
@@ -180,7 +191,7 @@ This storage is illustrated in the figure below.
  \centering
  \label{fig4}
  \includegraphics[scale=0.25]{Data_permutations.png}
- \caption{Coloring approach}
+ \caption{Data permutations}
 \end{figure}
 Otherwise, since the partitionment is topological, cuts are done on edges and not on geometrical coordinates. This allows to compute the sub-domains only once
 for a given mesh, despite of its deformations. Thus, the METIS partitioning and the creation of permutations arrays and recursion tree can be done only once.
@@ -325,7 +336,7 @@ All in all, these first results are encouraging and we can reasonably expect to 
  \centering
  \label{fig7}
  \includegraphics[scale=0.2]{Laplacian_solver_time.png}
- \caption{Solver execution time}
+ \caption{Laplacian solver execution time}
 \end{figure}
 The gains offered by the OpenMP parallelism are far from ideal scaling because of the small proportion of code parallelized in the solver.
 Despite we did not modify the solver part, we observe a small benefit for the D\&C version compared to the reference version.
@@ -354,7 +365,7 @@ With this approach, whatever the size of the data set, the tasks will always fit
  \centering
  \label{fig9}
  \includegraphics[scale=0.2]{Elasticity_solver_time.png}
- \caption{Solver execution time}
+ \caption{Elasticity solver execution time}
 \end{figure}
 As we can see in the 4 MPI curves and for the same reasons than in the Laplacian solver, the D\&C version is still a little bit faster than the original version.
 We can expect even better results when the solver will be properly parallelized.
