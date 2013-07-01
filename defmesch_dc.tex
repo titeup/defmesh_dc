@@ -16,7 +16,7 @@
 \runningtitle{D&C Assembly}
 %\subtitle{Subtitle}
 
-\author[A]{\fnms{Lo\¨ic} \snm{Th\'ebault}%
+\author[A]{\fnms{Lo\"ic} \snm{Th\'ebault}%
 \thanks{Corresponding Author E-mail: }},
 \author[A]{\fnms{Eric} \snm{Petit}},
 \author[B]{\fnms{Marc} \snm{Tchiboukdjian}},
@@ -29,11 +29,8 @@ and
 \address[C]{Dassault Aviation, Saint-Cloud, France}
 
 \begin{abstract}
-Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machine. The main reason is that the runtimes and algorithms are
-using large amount of global communication and synchronization that will cause a severe problem on an increasing number of nodes and core per nodes. HPC users have to explore new paradigm to
-make an efficient usage of the new resources at their disposal. In this paper we propose and evaluate a Divide \& Conquer approach for parallelisation of an unstructured mesh CFD solver.
-Our target application is an industrial code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure. The implementation is based on the versatile cilk
-runtime and standard MPI. The original fortran code has been modified so that the elision of our modification is equivalent to the original, pure MPI, application.
+Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machine. The pure MPI codes are wasting IO, memory and communication. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal. Hybrid MPI+threads is one of them. In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelisation on shared memory of an unstructured mesh assembly to sparse matrix.
+Our target application is an industrial CFD application from Dassault Aviation computing mesh deformation for structure optimization. The implementation is based on the versatile cilk runtime and standard MPI. The original fortran code has been modified so that the elision of our modification is equivalent to the original, pure MPI, application.
 Preliminary results on the first step of the application, the matrix assembly from mesh to CSR matrix storage format, are encouraging and show good locality and scalability characteristics.
 
 \end{abstract}
@@ -98,6 +95,8 @@ In section 4 we explores the related works before presenting in section 5 the fu
 \section{Related Works}
 \subsection{Assembling}
 \subsection{Methods}
+
+\begin{itemize}
  \item CSR and coloring (ElemColor)
  \item COO (GlobalNZ)
  \item Hybrid COO/CSR with partitioning (sharedNZ)
@@ -106,6 +105,7 @@ In section 4 we explores the related works before presenting in section 5 the fu
  
  \item Unstructured Mesh Code Parallel Implementation
  \item Task Based Parallelisation SpMV, dongara and co \cite{MPI_task}
+\end{itemize}
 
 \section{Dassault Application : DEFMESH}
 
@@ -128,7 +128,7 @@ Test cases size and particularity (inc. numerical ?)
 
 \section{Divide and Conquer}
 
-Assembling with D&C \\
+Assembling with D\&C \\
 Preprocessing : METIS, renumbering, recursion tree...\\
 
 introduction of the following subsection
@@ -218,7 +218,7 @@ Result expected is on small number of core cilk+MPI == pure MPI, on larger numbe
 
 \subsection{Sequential}
 \subsection{Coloring}
-\subsection{D&C}
+\subsection{D\&C}
 
 scalability cilk small test case
 
