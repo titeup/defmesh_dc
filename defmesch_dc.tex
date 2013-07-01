@@ -3,6 +3,7 @@
 
 \usepackage{mathptmx}
 \usepackage{graphicx}
+\usepackage{subfigure}
 
 %\usepackage{times}
 %\normalfont
@@ -31,14 +32,11 @@ and
 
 \begin{abstract}
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machine.
-The main reason is that the runtimes and algorithms are using large amount of global communication and synchronization that will cause a severe problem on an increasing
-number of nodes and core per nodes. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal.
-In this paper we propose and evaluate a Divide \& Conquer approach for parallelisation of an unstructured mesh CFD solver.
-Our target application is an industrial code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure.
-The implementation is based on the versatile cilk runtime and standard MPI. The original fortran code has been modified so that the elision of our modification
-is equivalent to the original, pure MPI, application. Preliminary results on the first step of the application, the matrix assembly from mesh to CSR matrix storage format,
-are encouraging and show good locality and scalability characteristics.
-
+The pure MPI codes are wasting IO, memory and communication. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal.
+Hybrid MPI+threads is one of them. In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelisation on shared memory of an unstructured mesh assembly to sparse matrix.
+Our target application is an industrial CFD application from Dassault Aviation computing mesh deformation for structure optimization.
+The implementation is based on the versatile cilk runtime and standard MPI. The original fortran code has been modified so that the elision of our modification is equivalent to the original, pure MPI, application.
+Preliminary results on the first step of the application, the matrix assembly from mesh to CSR matrix storage format, are encouraging and show good locality and scalability characteristics.
 \end{abstract}
 
 \begin{keyword}
@@ -108,9 +106,13 @@ In section 4 we explores the related works before presenting in section 5 the fu
  Thereby, all elements of a same color have not any common edge and can be computed in parallel.
  However, each color must be treated one after the other. Moreover it suffers from a bad data locality since elements of a same color are distant from each other.
  This approach is illustrated in the figure below.
- \begin{center}
-  \includegraphics[scale=0.25]{Coloring_approach.png}
- \end{center}
+\begin{figure}[htp]
+ \centering
+ \label{fig1}
+ \includegraphics[scale=0.25]{Coloring_approach.png}
+ \caption{Coloring approach}
+\end{figure}
+
  \item COO (GlobalNZ)
  \item Hybrid COO/CSR with partitioning (sharedNZ)
  \item LocalNZ : redundant computations
@@ -147,9 +149,12 @@ Since the newly created sub-domains are not sharing any element, they can be tre
 However, elements on the frontier have nodes in both sub-domains and must be treated after they completed.
 Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner.
 This partitionment is illustrated in the figure below.
-\begin{center}
+\begin{figure}[htp]
+ \centering
+ \label{fig2}
  \includegraphics[scale=0.25]{DC_approach.png}
-\end{center}
+ \caption{Coloring approach}
+\end{figure}
 All the sub-domains are split recursively, offering a large amount of parallelism.
 This process results in a recursive partition tree where each leaf is associated with an independent Cilk task.
 For each node of this tree, the intervals of nodes, elements and separators used at the current step of recursion are stored.
@@ -159,18 +164,24 @@ The Cilk implementation is then straightforward. Execution runs through the tree
 This creates at each step of recursion parallelism between left and right parts.
 Then, when recursion reaches a leaf, the code is simply running the sequential assembling on its sub-domain.
 After left and right sub-domains are done, the corresponding Cilk tasks synchronize and one of them continue on the separator computation.
-\begin{center}
+\begin{figure}[htp]
+ \centering
+ \label{fig3}
  \includegraphics[scale=0.25]{Recursion_tree.png}
-\end{center}
+ \caption{Coloring approach}
+\end{figure}
 In order to increase the data locality, we permute the nodes and the elements arrays. Indeed the elements can be consecutive in memory inside each sub-domain,
 improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve
 locality between tasks. Some other data structures have to also be permuted or renumbered in order to be compatible with the MPI decomposition and the other inputs.
 Some of them are for instance the solution arrays or the interfaces between MPI domains.
 This storage is illustrated in the figure below.
-\begin{center}
+\begin{figure}[htp]
+ \centering
+ \label{fig4}
  \includegraphics[scale=0.25]{Data_permutations.png}
-\end{center}
+ \caption{Coloring approach}
+\end{figure}
 Otherwise, since the partitionment is topological, cuts are done on edges and not on geometrical coordinates. This allows to compute the sub-domains only once
 for a given mesh, despite of its deformations. Thus, the METIS partitioning and the creation of permutations arrays and recursion tree can be done only once.
 These structures have simply to be stored for instance with the mesh. On following runs, the application needs only to read these data and apply the permutations.
@@ -283,16 +294,22 @@ Final values are 512 partitions and 128 Cilk tasks. This correspond to approxima
 
 All the experiments have been done with default the OpenMP affinity set to scatter and Cilk threads are not pinned. These experiments runs on an UVSQ server
 composed of twelve cores distributed in two sockets of 6-cores Intel® Xeon® X5650 clocked at 2.67 GHz. The topology of the machine is described in the following illustration.
-\begin{center}
- \includegraphics[scale=0.4]{topo_mauduit.png}
-\end{center}
+\begin{figure}[htp]
+ \centering
+ \label{fig5}
+ \includegraphics[scale=0.35]{topo_mauduit.png}
+ \caption{UVSQ server topology}
+\end{figure}
 
 \subsection{Laplacian solver}
-\emph{Assembly step}
-\begin{center}
- \includegraphics[scale=0.2]{Laplacian_asm_time.png}
- \includegraphics[scale=0.2]{Laplacian_asm_efficiency.png}
-\end{center}
+\emph{Assembly step}\\
+\begin{figure}[htp]
+ \centering
+ \subfigure[Execution time]{\label{fig6:a}\includegraphics[scale=0.178]{Laplacian_asm_time.png}}\hspace{1em}%
+ \subfigure[Parallel efficiency]{\label{fig6:b}\includegraphics[scale=0.178]{Laplacian_asm_efficiency.png}}
+ \caption{Laplacian assembly step}
+\end{figure}
+
 On the execution time curve, the D\&C approach is close to pure MPI but there is still a loss of efficiency beyond 6 cores.
 This is probably due to the remaining sequential part of the D\&C code. Indeed, separator elements are not yet parallelized and can represent an important proportion
 of the computation, especially for the one at the beginning of the recursion.
@@ -304,9 +321,12 @@ element in the assembly step is quite low and separators even less negligible. I
 All in all, these first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
 
 \emph{Solving step}
-\begin{center}
+\begin{figure}[htp]
+ \centering
+ \label{fig7}
  \includegraphics[scale=0.2]{Laplacian_solver_time.png}
-\end{center}
+ \caption{Solver execution time}
+\end{figure}
 The gains offered by the OpenMP parallelism are far from ideal scaling because of the small proportion of code parallelized in the solver.
 Despite we did not modify the solver part, we observe a small benefit for the D\&C version compared to the reference version.
 This gain is probably due to a better data locality generated by the permutations as explained in the previous section.
@@ -314,11 +334,14 @@ To confirm the locality hypothesis, we measured the L3 cache misses occurring du
 We also tried to permute data randomly and observe a degradation of performances.
 
 \subsection{Elasticity solver}
-\emph{Assembly step}
-\begin{center}
- \includegraphics[scale=0.2]{Elasticity_asm_time.png}
- \includegraphics[scale=0.2]{Elasticity_asm_efficiency.png}
-\end{center}
+\emph{Assembly step}\\
+\begin{figure}[htp]
+ \centering
+ \subfigure[Execution time]{\label{fig8:a}\includegraphics[scale=0.19]{Elasticity_asm_time.png}}\hspace{1em}%
+ \subfigure[Parallel efficiency]{\label{fig8:b}\includegraphics[scale=0.19]{Elasticity_asm_efficiency.png}}
+ \caption{Elasticity assembly step}
+\end{figure}
+
 As we can see on the first curve, on the elasticity solver the D\&C approach is slightly faster than pure MPI and the parallel efficiency is equivalent.
 In the elasticity case, the amount of work of the assembly step is bigger than the Laplacian.
 Thus, the sequential part (ie separators computing) is less significant and the D\&C scalability gets better beyond 6 cores.
@@ -327,9 +350,12 @@ anywhere in the current MPI block, the D\&C version works on elements packed con
 With this approach, whatever the size of the data set, the tasks will always fit in cache if we increase the number of METIS partitions.\\
 
 \emph{Solving step}
-\begin{center}
+\begin{figure}[htp]
+ \centering
+ \label{fig9}
  \includegraphics[scale=0.2]{Elasticity_solver_time.png}
-\end{center}
+ \caption{Solver execution time}
+\end{figure}
 As we can see in the 4 MPI curves and for the same reasons than in the Laplacian solver, the D\&C version is still a little bit faster than the original version.
 We can expect even better results when the solver will be properly parallelized.
 Further investigation are needed to evaluate why the pure MPI version does not scale perfectly in our experiments.
