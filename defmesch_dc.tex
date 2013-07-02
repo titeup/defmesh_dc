@@ -1,4 +1,3 @@
-
 \documentclass{IOS-Book-Article}
 
 \usepackage{mathptmx}
@@ -98,35 +97,34 @@ Section 4 presents the result of performance and scalability.
 In section 4 we explores the related works before presenting in section 5 the future works and conclusion
 
 \section{Related Works}
-\subsection{Assembling}
- The matrix assembling on an unstructured mesh is non trivial to parallelize. Contribution of neighbor elements are reduced on shared edges which create concurrency issues.
- This concept is illustrated below.
-\begin{figure}[htp]
- \centering
- \label{fig0}
- \includegraphics[scale=0.2]{2D_assembly.png}
- \caption{2D assembling example}
-\end{figure}
+The section overview differents methods used to achieve Finite Element Assembly step in parallel.
+Most of the recent publications are focusing on GPU architectures.
 
- Therefore, threads handling elements sharing an edge must synchronize or some contributions may be lost. To create parallelism, one must create independent domain to work on.
- In that case we envision two different approaches, a state-of-the-art coloring approach and our proposition of D\&C based on a topological recursive dissection.
+A Stanford study \cite{Stanford} investigates into several ways to compute FEM assembly on GPUs.
+These approaches can be classified in three categories.
+
+\emph{Assembly by non-zero value of the system of equation}\\
+The first method consists to use one thread per non-zero value to compute. Several variants exist.
+Each thread can store needed contributions from mesh elements to global or local memory. Then, all needed contributions to compute non-zero values are reduced in parallel.
+By arranging data layout, this method can offer good performances. However, it can suffers of load imbalancing since requirement for non-zero values are heterogeneous.
+Moreover, it can be very memory consuming, both in capacity and bandwith and thus limited to small test cases.
+An other variant consists to use one thread for the whole assembly step of one non-zero value at a time, but this approach leads to redundant computations.
+
+\emph{Assembly by row of the system of equation}\\
+In this method, one thread is used per row of the matrix. This resolves load balancing issues since computational requirement are more homogeneous between rows.\\
+A finir...
+
+\emph{Assembly by mesh element}\\
+A final method studied in this investigation is to use one thread per mesh element computation and assembly.
+In order to work on independant elements and launch all threads in parallel, a coloring approach is often used.
+With this method, each thread perform the same amount of computation. However, it suffers of poor performances because of a bad data locality.
+Coloring is explained briefly below.
+
+Many choices are available to complete FEM assembly. All methods have their advantages and their limitations, depending for instance on target architecture, mesh size...
+We propose in this paper a new approach based on the D\&C recursive algorithm which try to resolve most of this issues.
+
 \subsection{Methods}
 \begin{itemize}
- \item CSR and coloring (ElemColor)\\
- A common approach for FEM assembly step is the coloring. Coloring principle is very simple, two elements sharing an edge must have a different color.
- Thereby, all elements of a same color have not any common edge and can be computed in parallel.
- However, each color must be treated one after the other. Moreover it suffers from a bad data locality since elements of a same color are distant from each other.
- This approach is illustrated in the figure below.
-\begin{figure}[htp]
- \centering
- \label{fig1}
- \includegraphics[scale=0.25]{Coloring_approach.png}
- \caption{Coloring approach}
-\end{figure}
-
- \item COO (GlobalNZ)
- \item Hybrid COO/CSR with partitioning (sharedNZ)
- \item LocalNZ : redundant computations
  \item Atomics
  \item Unstructured Mesh Code Parallel Implementation
  \item Task Based Parallelisation SpMV, dongara and co \cite{MPI_task}
@@ -144,12 +142,39 @@ NL, non-linear, the defamation is split into N small deformation, the mesh is up
 
 elas. elasticity, like nl but with a more complex assembly step and different boundary condition for the solver ? the rational is to smooth the deformation (???)
 
-
 explain the difference for the assembly step L,NL, vs alas
 
 Test cases size and particularity (inc. numerical ?)
 
+\subsection{Assembling}
+ The matrix assembling on an unstructured mesh is non trivial to parallelize. Contribution of neighbor elements are reduced on shared edges which create concurrency issues.
+ This concept is illustrated below.
+\begin{figure}[htp]
+ \centering
+ \label{fig0}
+ \includegraphics[scale=0.2]{2D_assembly.png}
+ \caption{2D assembling example}
+\end{figure}
 
+ Therefore, threads handling elements sharing an edge must synchronize or some contributions may be lost. To create parallelism, one must create independent domain to work on.
+ In that case we envision two different approaches, a state-of-the-art coloring approach and our proposition of D\&C based on a topological recursive dissection.
+
+\begin{itemize}
+ \item Solver, conjugate gradient, ddot, spmv, reduction
+ \item Communication for halo exchange
+\end{itemize}
+
+\section{Coloring}
+ Coloring principle is very easy to implement. To avoid race conditions, two elements sharing an edge must have a different color.
+ Thereby, all elements of a same color have not any common edge and can be computed in parallel.
+ However, each color must be treated one after the other. Moreover it suffers from a bad data locality since elements of a same color are distant from each other.
+ This approach is illustrated in the figure below.
+\begin{figure}[htp]
+ \centering
+ \label{fig1}
+ \includegraphics[scale=0.25]{Coloring_approach.png}
+ \caption{Coloring approach}
+\end{figure}
 
 \section{Divide and Conquer}
 
@@ -184,8 +209,7 @@ After left and right sub-domains are done, the corresponding Cilk tasks synchron
 In order to increase the data locality, we permute the nodes and the elements arrays. Indeed the elements can be consecutive in memory inside each sub-domain,
 improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve
-locality between tasks. Some other data structures have to also be permuted or renumbered in order to be compatible with the MPI decomposition and the other inputs.
-Some of them are for instance the solution arrays or the interfaces between MPI domains.
+locality between tasks.
 This storage is illustrated in the figure below.
 \begin{figure}[htp]
  \centering
@@ -193,22 +217,11 @@ This storage is illustrated in the figure below.
  \includegraphics[scale=0.25]{Data_permutations.png}
  \caption{Data permutations}
 \end{figure}
+Some other data structures have to also be permuted or renumbered in order to be compatible with the MPI decomposition and the other inputs.
+Some of them are for instance the solution arrays or the interfaces between MPI domains.
 Otherwise, since the partitionment is topological, cuts are done on edges and not on geometrical coordinates. This allows to compute the sub-domains only once
 for a given mesh, despite of its deformations. Thus, the METIS partitioning and the creation of permutations arrays and recursion tree can be done only once.
 These structures have simply to be stored for instance with the mesh. On following runs, the application needs only to read these data and apply the permutations.
-
-\begin{itemize}
- \item introduction of the following subsection
- \item locality (data, sync) and concurrency for efficient parallelisation
- \item nice figure to explain separation LRS and nice mesh figure (from specfem?)
- \item explain the pb of knowing where to write the data (better data structure?)
- \item explain the pb of identifying the concurrency, sort so that subdomain are independent, explain why it helps data locality
- \item separator
- \item Matrix assembly
- \item Solver, conjugate gradient, ddot, spmv, reduction
- \item Communication for halo exchange
-\end{itemize}
-
 
 \subsection{Unstructured Domain decomposition}
 
@@ -218,8 +231,9 @@ Explain the result, the reordering of the data, and the renumerotation of the in
 (talk about elision, silk elision, our code in Fortran elision)
 
 The Initial mesh coordinate array is firstly tranform in a nodal graph thanks to METIS before decomposing it. Indeed, METIS recursive partitioning routine works directly
-on a graph, dual or nodal. We use nodal one because we need to partition both nodes and elements but also make a distinction between elements wich are fully composed of
-nodes in a same partition and those which are on the separation of two node partitions. This option is not provided with dual graph decomposition METIS.
+on a dual or nodal graph. We choose the nodal graph partitioning and use the node partitionment to create an element partitionment.
+We have to make a distinction between elements wich have all their nodes in a same partition and those at the frontier of two partitions.
+
 METIS also proposes a "meta-function" of mesh partitioning wich combines mesh to graph transormation and graph partitioning, but we experiment better performances by
 calling separatly this two functions.
 The final output is an array, dimensionned to the number of nodes in our mesh, which indicates the partition number of each node.
