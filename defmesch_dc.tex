@@ -47,7 +47,6 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, Matrix Assembly
 \pagestyle{empty}
 
 \section*{Introduction}
-
 Positionment : code MPI compare to hybrid.\\
 Problem on FEM : assembling, parallelization with shared memory non trivial.\\
 Assembling on multicore, not on GPU (most of papers are for GPUs)\\\\
@@ -116,19 +115,17 @@ A finir...
 
 \emph{Assembly by mesh element}\\
 A final method studied in this investigation is to use one thread per mesh element computation and assembly.
-In order to work on independant elements and launch all threads in parallel, a coloring approach is often used.
+In order to work on independent elements and launch all threads in parallel, a coloring approach is often used.
 With this method, each thread perform the same amount of computation. However, it suffers of poor performances because of a bad data locality.
 Coloring is explained briefly below.
 
 Many choices are available to complete FEM assembly. All methods have their advantages and their limitations, depending for instance on target architecture, mesh size...
 We propose in this paper a new approach based on the D\&C recursive algorithm which try to resolve most of this issues.
 
-\subsection{Methods}
-\begin{itemize}
- \item Atomics
- \item Unstructured Mesh Code Parallel Implementation
- \item Task Based Parallelisation SpMV, dongara and co \cite{MPI_task}
-\end{itemize}
+\subsection{To do}
+ Atomics\\
+ Unstructured Mesh Code Parallel Implementation\\
+ Task Based Parallelisation SpMV, dongara and co \cite{MPI_task}\\
 
 \section{Dassault Application : DEFMESH}
 
@@ -151,7 +148,7 @@ Test cases size and particularity (inc. numerical ?)
  This concept is illustrated below.
 \begin{figure}[htp]
  \centering
- \label{fig0}
+ \label{2Dasm}
  \includegraphics[scale=0.2]{2D_assembly.png}
  \caption{2D assembling example}
 \end{figure}
@@ -164,133 +161,96 @@ Test cases size and particularity (inc. numerical ?)
  \item Communication for halo exchange
 \end{itemize}
 
-\section{Coloring}
+\subsection{Coloring}
  Coloring principle is very easy to implement. To avoid race conditions, two elements sharing an edge must have a different color.
  Thereby, all elements of a same color have not any common edge and can be computed in parallel.
  However, each color must be treated one after the other. Moreover it suffers from a bad data locality since elements of a same color are distant from each other.
  This approach is illustrated in the figure below.
 \begin{figure}[htp]
  \centering
- \label{fig1}
+ \label{ColApproach}
  \includegraphics[scale=0.25]{Coloring_approach.png}
  \caption{Coloring approach}
 \end{figure}
 
-\section{Divide and Conquer}
+\section{Divide \& Conquer}
 
 The main idea of the Divide \& Conquer approach for shared memory parallelization is to create task level parallelism while preserving a good data locality and
 minimizing synchronization cost. It is based on a topological recursive bisection of the mesh.
 
-Since the newly created sub-domains are not sharing any element, they can be treated in parallel.
+\subsection{Unstructured Domain Decomposition}
+The sub-domains created by recursive bisections are not sharing any element ans thus, can be executed in parallel.
 However, elements on the frontier have nodes in both sub-domains and must be treated after they completed.
 Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner.
 This partitionment is illustrated in the figure below.
 \begin{figure}[htp]
  \centering
- \label{fig2}
+ \label{DCapproach}
  \includegraphics[scale=0.25]{DC_approach.png}
  \caption{D\&C approach}
 \end{figure}
-All the sub-domains are split recursively, offering a large amount of parallelism.
-This process results in a recursive partition tree where each leaf is associated with an independent Cilk task.
+\\All the sub-domains are split recursively, offering a large amount of parallelism.
+This process results in a recursive partition tree where each leaf is associated to an independent Cilk task.
 For each node of this tree, the intervals of nodes, elements and separators used at the current step of recursion are stored.
 This tree is represented in the figure below.
-
-The Cilk implementation is then straightforward. Execution runs through the tree starting from the root and spawning a new Cilk task at each node separation.
-This creates at each step of recursion parallelism between left and right parts.
-Then, when recursion reaches a leaf, the code is simply running the sequential assembling on its sub-domain.
-After left and right sub-domains are done, the corresponding Cilk tasks synchronize and one of them continue on the separator computation.
 \begin{figure}[htp]
  \centering
- \label{fig3}
+ \label{RecTree}
  \includegraphics[scale=0.25]{Recursion_tree.png}
  \caption{Recursion tree}
 \end{figure}
-In order to increase the data locality, we permute the nodes and the elements arrays. Indeed the elements can be consecutive in memory inside each sub-domain,
-improving intra-task locality.
-Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve
-locality between tasks.
+
+\subsection{Data Reordering}
+In order to increase the data locality, we permute the nodes and the elements arrays. Indeed the elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
+Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve locality between tasks.
+To achieve these permutations, we start from METIS output array giving for each node of the mesh, its partition number. From this array, we compute our own partition array on elements by distinguishing
+elements composed of nodes from several partitions. These elements are called separator elements and belongs to a distinct partition stored next to its two partitions.
 This storage is illustrated in the figure below.
+
+Some other data structures have to also be permuted or renumbered in order to be compatible with the MPI decomposition and the other inputs.
+Some of them are for instance the solution arrays or the interfaces between MPI domains.
 \begin{figure}[htp]
  \centering
- \label{fig4}
+ \label{dataPermut}
  \includegraphics[scale=0.25]{Data_permutations.png}
  \caption{Data permutations}
 \end{figure}
-Some other data structures have to also be permuted or renumbered in order to be compatible with the MPI decomposition and the other inputs.
-Some of them are for instance the solution arrays or the interfaces between MPI domains.
-Otherwise, since the partitionment is topological, cuts are done on edges and not on geometrical coordinates. This allows to compute the sub-domains only once
-for a given mesh, despite of its deformations. Thus, the METIS partitioning and the creation of permutations arrays and recursion tree can be done only once.
-These structures have simply to be stored for instance with the mesh. On following runs, the application needs only to read these data and apply the permutations.
 
-\subsection{Unstructured Domain decomposition}
+Otherwise, since the partitionment is topological, cuts are done on edges rather than geometrical coordinates. This allows to compute the sub-domains only once
+for a given mesh, despite of its deformations. Thus, the time passed in METIS partitioning and in the creation of permutations arrays and recursion tree is negligible since it is done only once.
+These structures can be simply stored with the mesh for instance. Then on following runs, the application needs only to read these data and apply the permutations.
 
-metis explain how why space filling curve etc.
+\subsection{Cilk Implementation}
+Cilk is a task based runtime developed by Intel. It allows to create parallel tasks with the \emph{spawn} keyword and to synchronize them with the \emph{sync} keyword.
+All these tasks can be executed independently by threads. These threads, called \emph{workers}, have a queue of tasks to execute.
+In order to improve the load balancing, Cilk runtime uses a work-stealing scheduler. Once a worker completes its queue, it can steal additional tasks from slower workers.
 
-Explain the result, the reordering of the data, and the renumerotation of the interface to have a minimal intrusion on the original code.
-(talk about elision, silk elision, our code in Fortran elision)
+\subsubsection{Recursive Task Tree}
+Starting from the recursion tree shown in \ref{RecTree}, the Cilk implementation is then straightforward.
+Execution runs through the tree starting from the root and spawning a new Cilk task at each node separation.
+This creates at each step of recursion parallelism between left and right parts.
+Then, when recursion reaches a leaf, the code is simply running the sequential assembling on its sub-domain.
+After left and right sub-domains are done, the corresponding Cilk tasks synchronize and one of them continue on the separator computation.
+In order to have finer permutations whitout increase the number of Cilk tasks, it is also possible to stop the recursion earlier.
+In this way, tasks no longer corresponds to leaves of the tree, but to nodes.
+Thus, they execute sequentially and in one block the left, right and corresponding separator partitions which are stored contiguously in memory.
 
-The Initial mesh coordinate array is firstly tranform in a nodal graph thanks to METIS before decomposing it. Indeed, METIS recursive partitioning routine works directly
-on a dual or nodal graph. We choose the nodal graph partitioning and use the node partitionment to create an element partitionment.
-We have to make a distinction between elements wich have all their nodes in a same partition and those at the frontier of two partitions.
+\subsubsection{Parallel For}
 
-METIS also proposes a "meta-function" of mesh partitioning wich combines mesh to graph transormation and graph partitioning, but we experiment better performances by
-calling separatly this two functions.
-The final output is an array, dimensionned to the number of nodes in our mesh, which indicates the partition number of each node.
-Starting from this node partition array, we can compute an element partition array associating each element to the same partition number than their nodes.
-If an element is composed of nodes from two or more partitions, it is called a separator and it belongs to a distinct partition number.
-Thanks to this partition arrays on resp. elements and nodes we can easily compute two permutation arrays on resp. elements and nodes giving for each of them, their new
-index in the initial mesh arrays. We apply these permutations on the coordinate array (x,y,z of each node), on the "element to node" array and on the reference solution.
-We also have to renumber each node of the "element to node" array in order to stay coherent with the newly permuted coordinate array. For the same reason we permute the
-interface array, listing the nodes at the separation of two sub-domains and exchanged by MPI process. (and ?)
+In some cases, when all elements or nodes are access in order inside a loop, there is no need to use a recursive task tree.
+Indeed Cilk provides, as well as OpenMP, an easy way to parallelize loops using the \emph{cilk\_for} keyword.
+By simply substituting the original \emph{for} by this keyword, iterations of the loop are split in several parallel tasks.
+On the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
 
-\subsection{Cilk implementation of task tree}
-
-Cilk is a task based runtime working on threads. It allows to create parallel tasks with the \emph{spawn} keyword and to synchronize them with the \emph{sync} keyword.
-Tasks are executed by Cilk \emph{workers}. Each core is linked to a worker which executes a new tasks as soon as it can.
-Cilk runtime uses a work-stealing scheduler to dynamically load-balance the tasks. Each worker has a queue of tasks to execute.
-Once a worker completes all its tasks, it can steal others from slower workers.
-
-explain why we want task base runtime, load balancing, fine grain...
-
-explain problematic of sync, conherency, vecto etc.
-
-
-Implementation of the tree to call and sync.
-
-indirect access to vertices local to an element
-
-stop when ???
-
-Once the data permuted and renumbered, we create a recursion tree giving for each step of partitionment the interval of nodes used, of elements belonging to left subdomain,
-right subdomain and the interval of separator elements belonging the subdomain at the frontier of left and right ones.
-Thus, the tree root intervals contain all  the nodes of the mesh, and all the elements separated in 3 parts (LRS) and the leaves of the tree contain just the necessary nodes
-for their subdomain and the interval of elements used (no more separator or left and right distinction).
-Once the recursion tree is done, we just have to recursivly run through it from the root to the leaves and spawning a new cilk task at each node until we arrive at the maximum
-number of tasks fixed or at the end of the tree. If we stop at a leaf, the corresponding cilk task will simply do the mesh assembling on its independant subdomain of nodes and
-elements. If we stop earlier at a node, the corresponding tasks will perform the assembly on its left and right half (stored contiguously in memory) and the on its separator
-part (stored also contiguously). Once this leaves or nodes are computed, we go back in the tree and compute the separator subdomains of each parent nodes.
-Sepator subdomains are not yet decomposed (futur work) and can represent for the moment an incompressive part non negligible of the assembling step, especially the first
-separator subdomain at the root of the tree.
-
-\subsection{Parallel for}
-
-when all element access in order, no need of task tree: cilk for or openMP
-
-If the solver step is prototyped talk about it with the list of basic operation given by Quang.
-
-how it works, the parameters
-
-
-\subsection{Cilk+MPI}
-
-com has to be done once in sequential section, avoid com from mpi domain decomposition replaced by data sharing, take benefit of the machine topology
-
-
+\subsection{To do}
+metis explain space filling curve etc.\\
+explain why we want task base runtime, load balancing, fine grain...\\
+explain problematic of sync, conherency, vecto etc.\\
+If the solver step is prototyped talk about it with the list of basic operation given by Quang.\\
+com has to be done once in sequential section, avoid com from mpi domain decomposition replaced by data sharing, take benefit of the machine topology\\
 Result expected is on small number of core cilk+MPI == pure MPI, on larger number of core D\&C silk is expected to continue scaling
 
 \section{Results}
-
 
 Experiments have been done on the Dassault Aviation EIB test case. It is an irregular mesh composed of 6 346 108 elements and 1 079 758 nodes.
 It represents the displacement of fuel tank along a plane fuselage.
@@ -385,23 +345,14 @@ As we can see in the 4 MPI curves and for the same reasons than in the Laplacian
 We can expect even better results when the solver will be properly parallelized.
 Further investigation are needed to evaluate why the pure MPI version does not scale perfectly in our experiments.
 
-\subsection{Sequential}
-\subsection{Coloring}
-\subsection{D\&C}
+\subsection{To do}
 
-scalability cilk small test case
-
-scalability cilk +MPI small test case, big test case
-
-
-replace on a 32 core machine 32MPI by 4MPI*8cilk or 2MPI*16cilk or 1 MPI *32 silk etc.
-
-replace on a 2node *16 core   ...... excpt 1 MPI...
-
-replace on 4 node*8core ........ except 2 and 1 MPI...
-
-
-locality: miss rate (does not work yet) , estimating data reuse with counters
+scalability cilk small test case\\
+scalability cilk +MPI small test case, big test case\\
+replace on a 32 core machine 32MPI by 4MPI*8cilk or 2MPI*16cilk or 1 MPI *32 silk etc.\\
+replace on a 2node *16 core   ...... excpt 1 MPI...\\
+replace on 4 node*8core ........ except 2 and 1 MPI...\\
+locality: miss rate (does not work yet) , estimating data reuse with counters\\
 
 \section{Conclusion and Futur Work}
 
