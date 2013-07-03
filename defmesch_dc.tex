@@ -8,7 +8,7 @@
 %\normalfont
 %\usepackage[T1]{fontenc}
 %\usepackage[mtplusscr,mtbold]{mathtime}
-%
+
 \begin{document}
 \begin{frontmatter}              % The preamble begins here.
 
@@ -46,7 +46,7 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, Matrix Assembly
 \thispagestyle{empty}
 \pagestyle{empty}
 
-\section*{Introduction}
+\section{Introduction}
 Positionment : code MPI compare to hybrid.\\
 Problem on FEM : assembling, parallelization with shared memory non trivial.\\
 Assembling on multicore, not on GPU (most of papers are for GPUs)\\\\
@@ -57,8 +57,8 @@ HPC users have to explore new paradigm to make an efficient usage of the new res
 The major effects of the core count increase per node are a lower memory per core, higher requirement for concurrency (TLP, ILP, vector), higher coherency traffic and higher
 cost for coherency protocol. The result is severe challenge for performance scalability. The many-core accelerators such has the Xeon Phi exacerbate even more these issues. 
 In order to help the developer to make a better usage of the shared resources and mitigate the node scalability issue, we propose and evaluate a new parallelisation strategy 
- to exploit more efficiently the shared memory level for iterative method using unstructured meshes. The objective is to take advantage of the full topology of the machine and
- enhance the data and synchronization locality to release pressure on the distributed structure such as memory, network and global I/O. 
+to exploit more efficiently the shared memory level for iterative method using unstructured meshes. The objective is to take advantage of the full topology of the machine and
+enhance the data and synchronization locality to release pressure on the distributed structure such as memory, network and global I/O. 
 
 In this paper we evaluate the Divide and Conquer, D\&C, approach on  unstructured meshes. Our implementation is based on a task-based runtime, Cilk~\cite{cilk5}.
 The rational is to divide recursively the work in two or more independent tasks, synchronize locally these tasks before returning. This recursive approach has many advantages.
@@ -82,18 +82,114 @@ Explain in section ...
 Say somewhere that one of the major difficulty when parallelizing this numerical code is to be very conservative on the numerical result. explain shortly why and how we deal
 with that.
 
-
 Even if the final goal is to parallelize the full application, we focus first on the assembly part. Indeed, despite a limited time coverage, renumbering, reordering,
 task tree structure because...Explain what is assembling and why this is difficult to parallelize
-
-
 
 Paper outline
 Section 1 presents rge application, its main characteristics and the test cases.
 The second section present the divide and conquer approach to parallelization. 
-Section 3 presents the implemention based on metis, silk and MPI.
+Section 3 presents the implemention based on metis, cilk and MPI.
 Section 4 presents the result of performance and scalability. 
 In section 4 we explores the related works before presenting in section 5 the future works and conclusion
+
+\section{Matrix Assembly}
+Matrix assembly is present in most of scientific applications. On an unstructured mesh, this step is non trivial to parallelize.
+Indeed, contributions of neighbor elements are reduced on shared edges which create concurrency issues.
+A simple assembly illustration on a 2D regular mesh is presented in figure \ref{fig:2Dasm}.
+
+Therefore, threads handling elements sharing an edge must synchronize or some contributions may be lost. To create parallelism, one must create independent domains to work on.
+In that case we envision two different approaches, a state-of-the-art coloring approach and our proposition of D\&C based on a topological recursive bisection.
+\begin{figure}[htp]
+ \centering
+ \includegraphics[scale=0.2]{2D_assembly.png}
+ \caption{2D assembling example}
+ \label{fig:2Dasm}
+\end{figure}
+
+\subsection{Coloring}
+Coloring principle is to avoid race conditions by assigning a different color to elements sharing an edge.
+Although determining a minimal coloring is NP-complete, create a coloring with an undefined number of color is simple.
+At the end of coloring, all elements of a same color have not any common edge and can be computed in parallel. However, each color must be treated one after the other.
+A 2D coloring example is illustrated in the figure \ref{fig:colApp}.
+
+The main issue of coloring approach is the data locality. Indeed, elements of a same color are distant from each other and are not stored contiguously in memory.
+\begin{figure}[htp]
+ \centering
+ \includegraphics[scale=0.25]{Coloring_approach.png}
+ \caption{Coloring approach}
+ \label{fig:colApp}
+\end{figure}
+
+\subsection{Divide \& Conquer}
+The main idea of the D\&C approach for shared memory parallelization is to create task level parallelism while preserving a good data locality and minimizing synchronization cost.
+Instead of increasing MPI domain decomposition and communications as data size increases, we increase the number of Cilk threads. MPI processes remain in moderate numbers.
+In this way, we take benefit of the machine topology and most of communications are replaced by data sharing.
+Results are expected to be equivalent with Cilk and MPI parallelisation than with pure MPI, on a small number of cores.
+On larger number of cores the D\&C approach is expected to continue scaling, while pure MPI should loose in performance.
+
+\subsubsection{Unstructured Domain Decomposition}
+D\&C is based on a topological recursive bisection of the mesh. Sub-domains created these bisections are not sharing any element ans thus, can be executed in parallel.
+However, elements on the frontier have nodes in both sub-domains and must be treated after they completed.
+Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner.
+An illustration of this partitionment is given in figure \ref{fig:DCapp}.
+\begin{figure}[htp]
+ \centering
+ \includegraphics[scale=0.25]{DC_approach.png}
+ \caption{D\&C approach}
+ \label{fig:DCapp}
+\end{figure}
+ 
+All the sub-domains are split recursively, offering a large amount of parallelism.
+This process results in a recursive partition tree where each leaf is associated to an independent Cilk task.
+For each node of this tree, the intervals of nodes, elements and separators used at the current step of recursion are stored.
+This tree is represented in the figure below.
+\begin{figure}[htp]
+ \centering
+ \includegraphics[scale=0.25]{Recursion_tree.png}
+ \caption{Recursion tree}
+ \label{fig:RecTree}
+\end{figure}
+
+\subsubsection{Data Reordering}
+In order to increase the data locality, we permute the nodes and the elements arrays. Indeed the elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
+Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve locality between tasks.
+To achieve these permutations, we start from METIS output array giving for each node of the mesh, its partition number. From this array, we compute our own partition array on elements by distinguishing
+elements composed of nodes from several partitions. These elements are called separator elements and belongs to a distinct partition stored next to its two partitions.
+This storage is illustrated in the figure \ref{fig:dataPermut}.
+\begin{figure}[htp]
+ \centering
+ \includegraphics[scale=0.25]{Data_permutations.png}
+ \caption{Data permutations}
+ \label{fig:dataPermut}
+\end{figure}
+
+Otherwise, since the partitionment is topological, cuts are done on edges rather than geometrical coordinates. This allows to compute the sub-domains only once
+for a given mesh, despite of its deformations. Thus, the time passed in METIS partitioning and in the creation of permutations arrays and recursion tree is negligible since it is done only once.
+These structures can be simply stored with the mesh for instance. Then on following runs, the application needs only to read these data and apply the permutations.
+
+\subsubsection{Cilk Implementation}
+Cilk is a task based runtime developed by Intel. It allows to create parallel tasks with the \emph{spawn} keyword and to synchronize them with the \emph{sync} keyword.
+All these tasks can be executed independently by threads. These threads, called \emph{workers}, have a queue of tasks to execute.
+In order to improve the load balancing, Cilk runtime uses a work-stealing scheduler. Once a worker completes its queue, it can steal additional tasks from slower workers.
+
+Starting from the recursion tree shown in figure \ref{fig:RecTree}, the Cilk implementation is then straightforward.
+Execution runs through the tree starting from the root and spawning a new Cilk task at each node separation.
+This creates at each step of recursion parallelism between left and right parts.
+Then, when recursion reaches a leaf, the code is simply running the sequential assembling on its sub-domain.
+After left and right sub-domains are done, the corresponding Cilk tasks synchronize and one of them continue on the separator computation.
+In order to have finer permutations whitout increase the number of Cilk tasks, it is also possible to stop the recursion earlier.
+In this way, tasks no longer corresponds to leaves of the tree, but to nodes.
+Thus, they execute sequentially and in one block the left, right and corresponding separator partitions which are stored contiguously in memory.
+
+In some cases, when all elements or nodes are access in order inside a loop, there is no need to use a recursive task tree.
+Indeed Cilk provides, as well as OpenMP, an easy way to parallelize loops using the \emph{cilk\_for} keyword.
+By simply substituting the original \emph{for} by this keyword, iterations of the loop are split in several parallel tasks.
+On the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
+
+\subsubsection{To do}
+metis explain space filling curve etc.\\
+explain why we want task base runtime, load balancing, fine grain...\\
+explain problematic of sync, conherency, vecto etc.\\
 
 \section{Related Works}
 The section overview differents methods used to achieve Finite Element Assembly step in parallel.
@@ -111,7 +207,7 @@ An other variant consists to use one thread for the whole assembly step of one n
 
 \emph{Assembly by row of the system of equation}\\
 In this method, one thread is used per row of the matrix. This resolves load balancing issues since computational requirement are more homogeneous between rows.\\
-A finir...
+**** A finir... ****
 
 \emph{Assembly by mesh element}\\
 A final method studied in this investigation is to use one thread per mesh element computation and assembly.
@@ -123,135 +219,40 @@ Many choices are available to complete FEM assembly. All methods have their adva
 We propose in this paper a new approach based on the D\&C recursive algorithm which try to resolve most of this issues.
 
 \subsection{To do}
- Atomics\\
- Unstructured Mesh Code Parallel Implementation\\
- Task Based Parallelisation SpMV, dongara and co \cite{MPI_task}\\
+Atomics\\
+Task Based Parallelisation SpMV, dongara and co \cite{MPI_task}\\
 
-\section{Dassault Application : DEFMESH}
+\section{Experiments}
+To validate our approach, we apply the D\&C algorithm using Cilk and MPI on a the assembly step of an application from Dassault Aviation called DEFMESH.
+We compare our results to the original pure MPI version of the assembly step and also to a MPI + OpenMP version which uses the coloring approach.
 
-CFD, what for, how, current implem, mpi scalability ok...
+\subsection{Dassault Aviation DEFMESH Application}
+The DEFMESH application is a Computational Fluid Dynamics (CFD) code based on a Finite Element Method (FEM).
+It has been fully parallelized with the MPI protocol and recently with OpenMP in few parts.
+This code is used to deform an initial mesh in order to optimize its fluid flows.
 
-3 versions L, NL, elas, nice picture of mesh deformation comparing the three variant
+DEFMESH main kernel is decomposed in three steps explained in more details below.
+First one is the assembly step where mesh data are gathered into a CSR structure.
+Second step is the solver step which works on this CSR structure and compute optimal displacements.
+Final step is the update of mesh coordinates using previously computed deformations.
 
-L, linear one step of deformation
+Two versions of the kernel exist, a Laplacian version and an elastic version. Elastic version has a more complex assembly step and different boundary condition for the solver (?).
+Moreover, both versions can be whether linear or non linear.
+The linear versions compute displacements in one step of deformation. In the non linear versions, the deformation is split into a given number \emph{N} of smaller deformations.
+The mesh is updated after each deformation and thus, each step of the kernel are repeted \emph{N} times.
 
-NL, non-linear, the defamation is split into N small deformation, the mesh is updated after each deformation
+We launch this application on two different test cases which are both irregular meshes from Dassault Aviation.
+First one is a small mesh of 152 086 elements and 27 499 nodes which represents an M6 wing. We used it for developing and debugging.
+Second test case, called EIB, is composed of 6 346 108 elements and 1 079 758 nodes. It represents the displacement of fuel tank along a plane fuselage.
+This EIB test case has been used for experiments and measures presented in next section.
 
-elas. elasticity, like nl but with a more complex assembly step and different boundary condition for the solver ? the rational is to smooth the deformation (???)
+\subsubsection{To do}
+nice picture of mesh deformation comparing variants\\
+explain the difference for the assembly step L,NL\\
+Solver, conjugate gradient, ddot, spmv, reduction\\
+Communication for halo exchange\\
 
-explain the difference for the assembly step L,NL, vs alas
-
-Test cases size and particularity (inc. numerical ?)
-
-\subsection{Assembling}
- The matrix assembling on an unstructured mesh is non trivial to parallelize. Contribution of neighbor elements are reduced on shared edges which create concurrency issues.
- This concept is illustrated below.
-\begin{figure}[htp]
- \centering
- \label{2Dasm}
- \includegraphics[scale=0.2]{2D_assembly.png}
- \caption{2D assembling example}
-\end{figure}
-
- Therefore, threads handling elements sharing an edge must synchronize or some contributions may be lost. To create parallelism, one must create independent domain to work on.
- In that case we envision two different approaches, a state-of-the-art coloring approach and our proposition of D\&C based on a topological recursive dissection.
-
-\begin{itemize}
- \item Solver, conjugate gradient, ddot, spmv, reduction
- \item Communication for halo exchange
-\end{itemize}
-
-\subsection{Coloring}
- Coloring principle is very easy to implement. To avoid race conditions, two elements sharing an edge must have a different color.
- Thereby, all elements of a same color have not any common edge and can be computed in parallel.
- However, each color must be treated one after the other. Moreover it suffers from a bad data locality since elements of a same color are distant from each other.
- This approach is illustrated in the figure below.
-\begin{figure}[htp]
- \centering
- \label{ColApproach}
- \includegraphics[scale=0.25]{Coloring_approach.png}
- \caption{Coloring approach}
-\end{figure}
-
-\section{Divide \& Conquer}
-
-The main idea of the Divide \& Conquer approach for shared memory parallelization is to create task level parallelism while preserving a good data locality and
-minimizing synchronization cost. It is based on a topological recursive bisection of the mesh.
-
-\subsection{Unstructured Domain Decomposition}
-The sub-domains created by recursive bisections are not sharing any element ans thus, can be executed in parallel.
-However, elements on the frontier have nodes in both sub-domains and must be treated after they completed.
-Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner.
-This partitionment is illustrated in the figure below.
-\begin{figure}[htp]
- \centering
- \label{DCapproach}
- \includegraphics[scale=0.25]{DC_approach.png}
- \caption{D\&C approach}
-\end{figure}
-\\All the sub-domains are split recursively, offering a large amount of parallelism.
-This process results in a recursive partition tree where each leaf is associated to an independent Cilk task.
-For each node of this tree, the intervals of nodes, elements and separators used at the current step of recursion are stored.
-This tree is represented in the figure below.
-\begin{figure}[htp]
- \centering
- \label{RecTree}
- \includegraphics[scale=0.25]{Recursion_tree.png}
- \caption{Recursion tree}
-\end{figure}
-
-\subsection{Data Reordering}
-In order to increase the data locality, we permute the nodes and the elements arrays. Indeed the elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
-Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve locality between tasks.
-To achieve these permutations, we start from METIS output array giving for each node of the mesh, its partition number. From this array, we compute our own partition array on elements by distinguishing
-elements composed of nodes from several partitions. These elements are called separator elements and belongs to a distinct partition stored next to its two partitions.
-This storage is illustrated in the figure below.
-
-Some other data structures have to also be permuted or renumbered in order to be compatible with the MPI decomposition and the other inputs.
-Some of them are for instance the solution arrays or the interfaces between MPI domains.
-\begin{figure}[htp]
- \centering
- \label{dataPermut}
- \includegraphics[scale=0.25]{Data_permutations.png}
- \caption{Data permutations}
-\end{figure}
-
-Otherwise, since the partitionment is topological, cuts are done on edges rather than geometrical coordinates. This allows to compute the sub-domains only once
-for a given mesh, despite of its deformations. Thus, the time passed in METIS partitioning and in the creation of permutations arrays and recursion tree is negligible since it is done only once.
-These structures can be simply stored with the mesh for instance. Then on following runs, the application needs only to read these data and apply the permutations.
-
-\subsection{Cilk Implementation}
-Cilk is a task based runtime developed by Intel. It allows to create parallel tasks with the \emph{spawn} keyword and to synchronize them with the \emph{sync} keyword.
-All these tasks can be executed independently by threads. These threads, called \emph{workers}, have a queue of tasks to execute.
-In order to improve the load balancing, Cilk runtime uses a work-stealing scheduler. Once a worker completes its queue, it can steal additional tasks from slower workers.
-
-\subsubsection{Recursive Task Tree}
-Starting from the recursion tree shown in \ref{RecTree}, the Cilk implementation is then straightforward.
-Execution runs through the tree starting from the root and spawning a new Cilk task at each node separation.
-This creates at each step of recursion parallelism between left and right parts.
-Then, when recursion reaches a leaf, the code is simply running the sequential assembling on its sub-domain.
-After left and right sub-domains are done, the corresponding Cilk tasks synchronize and one of them continue on the separator computation.
-In order to have finer permutations whitout increase the number of Cilk tasks, it is also possible to stop the recursion earlier.
-In this way, tasks no longer corresponds to leaves of the tree, but to nodes.
-Thus, they execute sequentially and in one block the left, right and corresponding separator partitions which are stored contiguously in memory.
-
-\subsubsection{Parallel For}
-
-In some cases, when all elements or nodes are access in order inside a loop, there is no need to use a recursive task tree.
-Indeed Cilk provides, as well as OpenMP, an easy way to parallelize loops using the \emph{cilk\_for} keyword.
-By simply substituting the original \emph{for} by this keyword, iterations of the loop are split in several parallel tasks.
-On the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
-
-\subsection{To do}
-metis explain space filling curve etc.\\
-explain why we want task base runtime, load balancing, fine grain...\\
-explain problematic of sync, conherency, vecto etc.\\
-If the solver step is prototyped talk about it with the list of basic operation given by Quang.\\
-com has to be done once in sequential section, avoid com from mpi domain decomposition replaced by data sharing, take benefit of the machine topology\\
-Result expected is on small number of core cilk+MPI == pure MPI, on larger number of core D\&C silk is expected to continue scaling
-
-\section{Results}
-
+\subsection{Experimental Setups}
 Experiments have been done on the Dassault Aviation EIB test case. It is an irregular mesh composed of 6 346 108 elements and 1 079 758 nodes.
 It represents the displacement of fuel tank along a plane fuselage.
 
@@ -260,7 +261,7 @@ Divide \& Conquer version called “D\&C”. The original version uses MPI betwe
 The D\&C version, as described above uses a recursive partitioning of each block of the mesh and exploits, in addition to MPI and OpenMP, a Cilk task parallelism
 in the assembly step.
 
-For each of these versions, we consider the two different solvers of DEFMESH: the Laplacian one and the elasticity one.
+For each of these versions, we consider the two variants of DEFMESH: the Laplacian one and the elasticity one.
 Both of them are non linear solvers with 50 steps of resolution. Measures correspond to the average time of one iteration.
 In all cases we measure separately the assembly step, where the D\&C approach has been applied and the solving step, not yet modified.
 
@@ -282,19 +283,18 @@ composed of twelve cores distributed in two sockets of 6-cores Intel® Xeon® X5
 \begin{figure}[htp]
  \centering
  \label{fig5}
- \includegraphics[scale=0.35]{topo_mauduit.png}
+ \includegraphics[scale=0.33]{topo_mauduit.png}
  \caption{UVSQ server topology}
 \end{figure}
 
-\subsection{Laplacian solver}
-\emph{Assembly step}\\
+\subsection{Results}
+\subsubsection{Laplacian Assembly}
 \begin{figure}[htp]
  \centering
  \subfigure[Execution time]{\label{fig6:a}\includegraphics[scale=0.178]{Laplacian_asm_time.png}}\hspace{1em}%
  \subfigure[Parallel efficiency]{\label{fig6:b}\includegraphics[scale=0.178]{Laplacian_asm_efficiency.png}}
  \caption{Laplacian assembly step}
 \end{figure}
-
 On the execution time curve, the D\&C approach is close to pure MPI but there is still a loss of efficiency beyond 6 cores.
 This is probably due to the remaining sequential part of the D\&C code. Indeed, separator elements are not yet parallelized and can represent an important proportion
 of the computation, especially for the one at the beginning of the recursion.
@@ -305,7 +305,7 @@ element in the assembly step is quite low and separators even less negligible. I
 
 All in all, these first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
 
-\emph{Solving step}
+\subsubsection{Laplacian Solver}
 \begin{figure}[htp]
  \centering
  \label{fig7}
@@ -318,23 +318,21 @@ This gain is probably due to a better data locality generated by the permutation
 To confirm the locality hypothesis, we measured the L3 cache misses occurring during the solver and they are significantly lower with D\&C compared to the original version.
 We also tried to permute data randomly and observe a degradation of performances.
 
-\subsection{Elasticity solver}
-\emph{Assembly step}\\
+\subsubsection{Elasticity Assembly}
 \begin{figure}[htp]
  \centering
  \subfigure[Execution time]{\label{fig8:a}\includegraphics[scale=0.19]{Elasticity_asm_time.png}}\hspace{1em}%
  \subfigure[Parallel efficiency]{\label{fig8:b}\includegraphics[scale=0.19]{Elasticity_asm_efficiency.png}}
  \caption{Elasticity assembly step}
 \end{figure}
-
 As we can see on the first curve, on the elasticity solver the D\&C approach is slightly faster than pure MPI and the parallel efficiency is equivalent.
 In the elasticity case, the amount of work of the assembly step is bigger than the Laplacian.
 Thus, the sequential part (ie separators computing) is less significant and the D\&C scalability gets better beyond 6 cores.
 Moreover in the D\&C version, data continue to fit in cache whereas MPI starts to slow down. Indeed, where the original version works on elements located
 anywhere in the current MPI block, the D\&C version works on elements packed contiguously in small blocks corresponding to the Cilk tasks.
-With this approach, whatever the size of the data set, the tasks will always fit in cache if we increase the number of METIS partitions.\\
+With this approach, whatever the size of the data set, the tasks will always fit in cache if we increase the number of METIS partitions.
 
-\emph{Solving step}
+\subsubsection{Elasticity Solver}
 \begin{figure}[htp]
  \centering
  \label{fig9}
@@ -345,17 +343,7 @@ As we can see in the 4 MPI curves and for the same reasons than in the Laplacian
 We can expect even better results when the solver will be properly parallelized.
 Further investigation are needed to evaluate why the pure MPI version does not scale perfectly in our experiments.
 
-\subsection{To do}
-
-scalability cilk small test case\\
-scalability cilk +MPI small test case, big test case\\
-replace on a 32 core machine 32MPI by 4MPI*8cilk or 2MPI*16cilk or 1 MPI *32 silk etc.\\
-replace on a 2node *16 core   ...... excpt 1 MPI...\\
-replace on 4 node*8core ........ except 2 and 1 MPI...\\
-locality: miss rate (does not work yet) , estimating data reuse with counters\\
-
 \section{Conclusion and Futur Work}
-
 Assembling is only the 5 first percent of the app, but this is the starting point. reprints large time in other some other mesh deformation code such has seismic
 simulation like specfem3D.
 HW counter already show that vertex and element reordering bring septential improvement on data locality. We also show a global improvement on RAM usage (?) etc...
