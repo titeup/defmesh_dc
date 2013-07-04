@@ -53,24 +53,23 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, Matrix Assembly
 Current algorithms and runtimes struggle to scale on a large number of cores and show a poor parallel efficiency on current HPC machine. 
 The major effects of the core count increase per node are a lower memory per core, higher requirement for concurrency (TLP, ILP, vector), higher coherency traffic and higher cost for coherency protocol. The result is severe challenge for performance scalability. The many-core accelerators such has the Xeon Phi exacerbate even more these issues. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal. 
 
-In order to help the developer to make a better usage of the shared resources and mitigate the node scalability issue, users can modify their application using hybrid MPI + thread to take advantage of the full topology of the machine and enhance the data and synchronization locality.
+In order to make a better usage of the shared resources and mitigate the node scalability issue, users can modify their application using hybrid MPI + thread to take advantage of the full topology of the machine and enhance the data and synchronization locality.
 In their paper, we propose and evaluate a new parallelisation strategy based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task-based runtime, Cilk~\cite{cilk5}. 
 
-Say somewhere that one of the major difficulty when parallelizing this numerical code is to be very conservative on the numerical result. explain shortly why and how we deal
-with that.
+We demonstrate this the potential of the D\&C approach on the matrix assembly step from Finite Element Methods, FEM. This step consist on building from the mesh the matrix describing the linear system to solve. The value of the matrix is the result of a reduction operation of some elements to be stored in a sparse matrix. The irregularity of the structure and the sequentialization of the reduction is challenging to achieve an efficient parallelisation. Except state of the art coloring approach, there is no recent research published on parallelizing for multicores. In the multicore context, the recent algorithm design for GPUs~\cite{Stanford,CPUGPUasm}.
+
+We apply our d\&C strategy for the parallelisation of the matrix assembly on an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure. We compare our results to the original pure MPI implementation and the coloring approach for shared memory parallelisation.
 
 
-
-We apply the d\&C strategy for the parallelisation of an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure.
-
-
-Paper outline
-Section 1 presents rge application, its main characteristics and the test cases.
-The second section present the divide and conquer approach to parallelization. 
-Section 3 presents the implemention based on metis, cilk and MPI.
-Section 4 presents the result of performance and scalability. 
-In section 4 we explores the related works before presenting in section 5 the future works and conclusion
-
+The paper outline is the following:
+\begin{itemize}
+\item Section 2 presents the Matrix assembly step in FEM applications
+\item Section 3 presents the divide and conquer approach to parallelization. 
+\item Section 4 presents the implemention based on metis, cilk and MPI.
+\item Section 5 presents the application, its main characteristics and the test cases.
+\item Section 6 presents the result of performance and scalability. 
+\item Section 7 the future works and conclusion
+\end{itemize}
 \section{Matrix Assembly}
 
 
