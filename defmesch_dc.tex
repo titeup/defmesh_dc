@@ -137,7 +137,7 @@ On larger number of cores the D\&C approach is expected to continue scaling, whi
 \subsubsection{Unstructured Domain Decomposition}
 D\&C is based on a topological recursive bisection of the mesh. Sub-domains created these bisections are not sharing any element ans thus, can be executed in parallel.
 However, elements on the frontier have nodes in both sub-domains and must be treated after they completed.
-Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner.
+Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner \cite{Metis}.
 An illustration of this partitionment is given in figure \ref{fig:DCapp}.
 \begin{figure}[htp]
  \centering
@@ -213,7 +213,7 @@ By arranging data layout, this method can offer good performances. However, it c
 Moreover, it can be very memory consuming and thus limited to small test cases.
 An other variant consists to use one thread for the whole assembly step of one non-zero value at a time, but this approach leads to redundant computations.
 
-An other method consists in assembling by mesh element. One thread is responsible for the whole assembly step of one element at a time.
+An other method consists in assembling by mesh element \cite{CUDAfe,CPUfe1,CPUfe2}. One thread is responsible for the whole assembly step of one element at a time.
 In order to launch several threads in parallel on independent elements, a coloring approach is often used.
 In this way, each thread performs the same amount of computation, but suffers of poor performances because of a bad data locality as explained is section \ref{sec:col}.
 
