@@ -65,7 +65,7 @@ The paper outline is the following:
 \begin{itemize}
 \item Section 2 presents the Matrix assembly step in FEM applications
 \item Section 3 presents the divide and conquer approach to parallelization. 
-\item Section 4 presents the implemention based on metis, cilk and MPI.
+\item Section 4 presents the implementation based on Metis, cilk and MPI.
 \item Section 5 presents the application, its main characteristics and the test cases.
 \item Section 6 presents the result of performance and scalability. 
 \item Section 7 the future works and conclusion
@@ -135,7 +135,7 @@ Results are expected to be equivalent with Cilk and MPI parallelisation than wit
 On larger number of cores the D\&C approach is expected to continue scaling, while pure MPI should loose in performance.
 
 \subsubsection{Unstructured Domain Decomposition}
-D\&C is based on a topological recursive bisection of the mesh. Sub-domains created these bisections are not sharing any element ans thus, can be executed in parallel.
+D\&C is based on a topological recursive bisection of the mesh. Sub-domains created these bisections are not sharing any element and thus, can be executed in parallel.
 However, elements on the frontier have nodes in both sub-domains and must be treated after they completed.
 Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner \cite{Metis}.
 An illustration of this partitionment is given in figure \ref{fig:DCapp}.
@@ -187,7 +187,7 @@ Execution runs through the tree starting from the root and spawning a new Cilk t
 This creates at each step of recursion parallelism between left and right parts.
 Then, when recursion reaches a leaf, the code is simply running the sequential assembling on its sub-domain.
 After left and right sub-domains are done, the corresponding Cilk tasks synchronize and one of them continue on the separator computation.
-In order to have finer permutations whitout increase the number of Cilk tasks, it is also possible to stop the recursion earlier.
+In order to have finer permutations without increase the number of Cilk tasks, it is also possible to stop the recursion earlier.
 In this way, tasks no longer corresponds to leaves of the tree, but to nodes.
 Thus, they execute sequentially and in one block the left, right and corresponding separator partitions which are stored contiguously in memory.
 
@@ -217,7 +217,7 @@ An other method consists in assembling by mesh element \cite{CUDAfe,CPUfe1,CPUfe
 In order to launch several threads in parallel on independent elements, a coloring approach is often used.
 In this way, each thread performs the same amount of computation, but suffers of poor performances because of a bad data locality as explained is section \ref{sec:col}.
 
-An assembly approach for Recursive Sparse Blocks matrices have also been experimented \cite{RSBasm}, but seems to be higly memory-bandwith bound.
+An assembly approach for Recursive Sparse Blocks matrices have also been experimented \cite{RSBasm}, but seems to be highly memory-bandwidth bound.
 
 \subsection{To do}
 Atomics\\
@@ -241,9 +241,9 @@ Final step is the update of mesh coordinates using previously computed deformati
 Two versions of the kernel exist, a Laplacian version and an elastic version. Elastic version has a more complex assembly step and different boundary conditions for the solver (?).
 While a simple scalar is computed for each edge of the mesh in the Laplacian version, a 3 by 3 matrix based on a more complex equation is computed in the elastic version.
 Moreover, both versions can be whether linear or non linear.
-The linear versions compute displacements in one step of deformation using the conjugate gradient methos as a direc method.
+The linear versions compute displacements in one step of deformation using the conjugate gradient methods as a direct method.
 In the non linear versions, the deformation is split into a given number \emph{N} of smaller deformations.
-The mesh is updated after each deformation and thus, each step of the kernel are repeted $N$times. The solver is then used as an iterative method.
+The mesh is updated after each deformation and thus, each step of the kernel are repeated $N$times. The solver is then used as an iterative method.
 
 We launch this application on two different test cases which are both irregular meshes from Dassault Aviation.
 First one is a small mesh of 152 086 elements and 27 499 nodes which represents an M6 wing. We used it for developing and debugging.
@@ -346,7 +346,7 @@ Further investigation are needed to evaluate why the pure MPI version does not s
 \section{Conclusion and Futur Work}
 Assembly is only the 5 first percent of the DEFMESH application, but this is the starting point.
 This step can represent much more time in other mesh deformation codes such has seismic simulation like SpecFem3D.
-Hardware counters already show that vertex and elements reordering bring septential improvements on data locality.
+Hardware counters already show that vertex and elements reordering bring substantial improvements on data locality.
 We also show a global improvement on RAM usage (?) etc...
 The next step will be to work on the solver stage, using similar principles to enhance scalability and efficiency.
 Extension will focus on D\&C friendly data structure definition, using D\&C on other part of the application such as the SpMV product or the iterative solver. 
