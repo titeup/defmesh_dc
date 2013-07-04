@@ -70,16 +70,13 @@ We compare our results to the original pure MPI implementation and the coloring 
 \\\\
 The paper outline is the following:
 \begin{itemize}
-\item Section 2 presents the matrix assembly step in FEM applications using the coloring approach and our D\&C version.
-\item Section 3 presents the related works on recent FEM assembly methods and applications of D\&C principle on such codes.
-\item Section 4 presents the implementation based on METIS, Cilk and MPI.
-\item Section 5 presents the application, its main characteristics and the test cases.
-\item Section 6 presents the result of performance and scalability. 
-\item Section 7 the future works and conclusion
+\item Section 2 presents the matrix assembly step in FEM applications using the coloring approach and our D\&C version using Cilk and MPI.
+\item Section 3 presents the related works on recent FEM assembly methods and uses of D\&C principle on such FEM applications.
+\item Section 4 presents the experimental setups and results on the assembly step of DEFMESH application from Dassault Aviation.
+\item Section 5 is the conclusion and present our future works.
 \end{itemize}
+
 \section{Matrix Assembly}
-
-
 %The process alterate the mesh geometry and be conservative of the mesh topology.  We have to work on a very unstructured mesh. Therefore, load balancing and interface
 %computation prevent us to use geometrical domain decomposition.
 %We use METIS~\cite{Metis} to do a topological domain decomposition that will not vary with the mesh deformation.
@@ -91,107 +88,98 @@ The paper outline is the following:
 %\item Update the mesh coordinate and value, exchange the halo with other MPI rank.
 %\end{itemize}
 
+Matrix assembly is present in most of scientific applications using Finite Element Methods.
+A simple assembly illustration on a 2D regular mesh is presented in figure~\ref{fig:2Dasm}.
+To compute the value on $(N1,N2)$ edge, we have to sum the contributions of elements $E1$ and $E2$.
+In 3D, the number of neighbor elements of an edge has no theoretical limits.
 
-
-Matrix assembly is present in most of scientific applications. On an unstructured mesh, this step is non trivial to parallelize.
-Indeed, contributions of neighbor elements are reduced on shared edges which create concurrency issues.
-A simple assembly illustration on a 2D regular mesh is presented in figure \ref{fig:2Dasm}.
-
-Therefore, threads handling elements sharing an edge must synchronize or some contributions may be lost. To create parallelism, one must create independent domains to work on.
+On an unstructured mesh, this step is non trivial to parallelize.
+To create parallelism, one must create independent domains to work on.
 In that case we envision two different approaches, a state-of-the-art coloring approach and our proposition of D\&C based on a topological recursive bisection.
 \begin{figure}[htp]
  \centering
- \includegraphics[scale=0.2]{2D_assembly.png}
+ \includegraphics[scale=0.2]{2D_asm.png}
  \caption{2D assembling example}
  \label{fig:2Dasm}
 \end{figure}
 
 \subsection{Coloring}
 \label{sec:col}
-Coloring principle is to avoid race conditions by assigning a different color to elements sharing an edge.
+The coloring avoid race conditions by assigning a different color to elements sharing an edge.
+Each element of a same color can be computed in parallel, but every color must be evaluated sequentially.
 Although determining a minimal coloring is NP-complete, create a coloring with an undefined number of color is simple.
-At the end of coloring, all elements of a same color have not any common edge and can be computed in parallel. However, each color must be treated one after the other.
-A 2D coloring example is illustrated in the figure \ref{fig:colApp}.
-
-The main issue of coloring approach is the data locality. Indeed, elements of a same color are distant from each other and are not stored contiguously in memory.
+A pseudo-code is given in figure~\ref{fig:colApp} with a simple 2D coloring example.
 \begin{figure}[htp]
- \centering
  \includegraphics[scale=0.25]{Coloring_approach.png}
+ \begin{verbatim}
+ From initial Element_to_Node array, create:
+ -> Node_to_Element array
+ -> Element_to_Element array
+ -> Element_to_Color array
+ -> Color_to_Element array
+
+ For each color - in sequential
+     For all elements of current color - in parallel
+         Compute element contribution
+ \end{verbatim}
  \caption{Coloring approach}
  \label{fig:colApp}
 \end{figure}
+The main issue of coloring approach is the data locality. Indeed, elements of a same color are distant from each other and are not stored contiguously in memory.
 
 \subsection{Divide \& Conquer}
-
-
 %D\&C, approach on  unstructured meshes
 %The rational is to divide recursively the work in two or more independent tasks, synchronize locally these tasks before returning. This recursive approach has many advantages.
 %First the recursive sharing naturally exposes high concurrency. As long as the application is large enough, it is possible to produce a deeper tree to get more concurrency and 
 %therefore match the higher requirement of many-core system. Furthermore synchronization are local: only nodes of a same parent node in the recursive
 %tree needs to be synchronized. And finally, it greatly improved the data locality by reordering the data in smaller independent sets. 
 %
-%The D\&C approach is particularly
-%interesting for its ability to scale naturally to an increasing number of node thanks to its architecture oblivious concept.
+%The D\&C approach is particularly interesting for its ability to scale naturally to an increasing number of node thanks to its architecture oblivious concept.
 %Each leaves is responsible of its own data and there is a very minimal amount of sharing, avoiding costly locks and coherency protocols. 
-%
-
-
 
 The main idea of the D\&C approach for shared memory parallelization is to create task level parallelism while preserving a good data locality and minimizing synchronization cost.
 Instead of increasing MPI domain decomposition and communications as data size increases, we increase the number of Cilk threads. MPI processes remain in moderate numbers.
 In this way, we take benefit of the machine topology and most of communications are replaced by data sharing.
-Results are expected to be equivalent with Cilk and MPI parallelization than with pure MPI, on a small number of cores.
-On larger number of cores the D\&C approach is expected to continue scaling, while pure MPI should loose in performance.
+On a small number of cores, results of D\&C implementation are expected to be equivalent to pure MPI.
+On a larger number of cores, the D\&C approach is expected to continue scaling, while pure MPI should loose in performance.
 
-\subsubsection{Unstructured Domain Decomposition}
-D\&C is based on a topological recursive bisection of the mesh. Sub-domains created these bisections are not sharing any element and thus, can be executed in parallel.
-However, elements on the frontier have nodes in both sub-domains and must be treated after they completed.
-Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner \cite{Metis}.
-An illustration of this partitionment is given in figure \ref{fig:DCapp}.
+\subsubsection{Recursive Bisection}
+D\&C is based on a topological recursive bisection of the mesh.
+As illustrated in figure~\ref{fig:DCapp}, the left and right sub-domains created by these bisections are not sharing any element and thus, can be executed in parallel.
+However, separator elements in the middle have nodes in both sides and must be treated after left and right sub-domains.
+Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner~\cite{Metis}.
 \begin{figure}[htp]
  \centering
- \includegraphics[scale=0.25]{DC_approach.png}
+ \includegraphics[scale=0.2]{DC_approach.png}
+ \includegraphics[scale=0.2]{Data_permutations.png}
  \caption{D\&C approach}
  \label{fig:DCapp}
 \end{figure}
- 
-All the sub-domains are split recursively, offering a large amount of parallelism.
-This process results in a recursive partition tree where each leaf is associated to an independent Cilk task.
-For each node of this tree, the intervals of nodes, elements and separators used at the current step of recursion are stored.
-This tree is represented in the figure below.
-\begin{figure}[htp]
- \centering
- \includegraphics[scale=0.25]{Recursion_tree.png}
- \caption{Recursion tree}
- \label{fig:RecTree}
-\end{figure}
 
-\subsubsection{Data Reordering}
-In order to increase the data locality, we permute the nodes and the elements arrays.
-Indeed the elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
+In order to increase the data locality, we also permute node and element arrays.
+Indeed, nodes and elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve locality between tasks.
-To achieve these permutations, we start from METIS output array giving for each node of the mesh, its partition number.
-From this array, we compute our own partition array on elements by distinguishing elements composed of nodes from several partitions.
-These elements are called separator elements and belongs to a distinct partition stored next to its two partitions.
-This storage is illustrated in the figure \ref{fig:dataPermut}.
+
+This approach is applied recursively to all sub-domains, offering a large amount of parallelism.
+As illustrated in figure~\ref{fig:DCexe}, this results in a partition tree where each leaf is associated to an independent Cilk task.
 \begin{figure}[htp]
  \centering
- \includegraphics[scale=0.25]{Data_permutations.png}
- \caption{Data permutations}
- \label{fig:dataPermut}
+ \includegraphics[scale=0.2]{DC_rec.png}
+ \includegraphics[scale=0.2]{DC_tree.png}
+ \caption{D\&C recursive execution}
+ \label{fig:DCexe}
 \end{figure}
 
 Otherwise, since the partitionment is topological, cuts are done on edges rather than geometrical coordinates.
-This allows to compute the sub-domains only once for a given mesh, despite of its deformations.
-Thus, the time passed in METIS partitioning and in the creation of permutations arrays and recursion tree is negligible since it is done only once.
-These structures can be simply stored with the mesh for instance. Then on following runs, the application needs only to read these data and apply the permutations.
+This allows to compute sub-domains only once for a given mesh, despite of its deformations.
+On next runs, the application needs only to apply the permutations before executing the recursive assembly.
 
 \subsubsection{Cilk Implementation}
 Cilk is a task based runtime developed by Intel. It allows to create parallel tasks with the \emph{spawn} keyword and to synchronize them with the \emph{sync} keyword.
 All these tasks can be executed independently by threads. These threads, called \emph{workers}, have a queue of tasks to execute.
 In order to improve the load balancing, Cilk runtime uses a work-stealing scheduler. Once a worker completes its queue, it can steal additional tasks from slower workers.
 
-Starting from the recursion tree shown in figure \ref{fig:RecTree}, the Cilk implementation is then straightforward.
+Starting from the tree shown in figure \ref{fig:DCexe}, the Cilk implementation is then straightforward.
 Execution runs through the tree starting from the root and spawning a new Cilk task at each node separation.
 This creates at each step of recursion parallelism between left and right parts.
 Then, when recursion reaches a leaf, the code is simply running the sequential assembling on its sub-domain.
@@ -206,8 +194,6 @@ By simply substituting the original \emph{for} by this keyword, iterations of th
 On the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
 
 \subsubsection{To do}
-metis explain space filling curve etc.\\
-explain why we want task base runtime, load balancing, fine grain...\\
 explain problematic of sync, conherency, vecto (future work hybrid d\&c + coloring) etc.\\
 explain compatibility with mpi\\
 
