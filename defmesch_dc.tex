@@ -13,7 +13,7 @@
 \begin{frontmatter}              % The preamble begins here.
 
 %\pretitle{Pretitle}
-\title{D\&C Matrix Assembly Parallelisation for Unstructured Meshes}
+\title{D\&C Matrix Assembly parallelization for Unstructured Meshes}
 \runningtitle{D\&C Assembly}
 %\subtitle{Subtitle}
 
@@ -31,7 +31,7 @@ and
 
 \begin{abstract}
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machine.
-The pure MPI codes are wasting IO, memory and communication. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal such as hybrid MPI+threads. In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelisation on shared memory of an unstructured mesh assembly to sparse matrix.
+The pure MPI codes are wasting IO, memory and communication. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal such as hybrid MPI+threads. In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization on shared memory of an unstructured mesh assembly to sparse matrix.
 Our target application is an industrial CFD application from Dassault Aviation computing mesh deformation for structure optimization.
 The implementation is based on the versatile cilk runtime and standard MPI. The original fortran code has been modified so that the elision of our modification is equivalent to the original, pure MPI, application.
 Preliminary results on the first step of the application, the matrix assembly from mesh to CSR matrix storage format, are encouraging and show good locality and scalability characteristics.
@@ -54,11 +54,11 @@ Current algorithms and runtimes struggle to scale on a large number of cores and
 The major effects of the core count increase per node are a lower memory per core, higher requirement for concurrency (TLP, ILP, vector), higher coherency traffic and higher cost for coherency protocol. The result is severe challenge for performance scalability. The many-core accelerators such has the Xeon Phi exacerbate even more these issues. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal. 
 
 In order to make a better usage of the shared resources and mitigate the node scalability issue, users can modify their application using hybrid MPI + thread to take advantage of the full topology of the machine and enhance the data and synchronization locality.
-In their paper, we propose and evaluate a new parallelisation strategy based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task-based runtime, Cilk~\cite{cilk5}. 
+In their paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task-based runtime, Cilk~\cite{cilk5}. 
 
-We demonstrate this the potential of the D\&C approach on the matrix assembly step from Finite Element Methods, FEM. This step consist on building from the mesh the matrix describing the linear system to solve. The value of the matrix is the result of a reduction operation of some elements to be stored in a sparse matrix. The irregularity of the structure and the sequentialization of the reduction is challenging to achieve an efficient parallelisation. Except state of the art coloring approach, there is no recent research published on parallelizing for multicores. In the multicore context, the recent algorithm design for GPUs~\cite{Stanford,CPUGPUasm}.
+We demonstrate this the potential of the D\&C approach on the matrix assembly step from Finite Element Methods, FEM. This step consist on building from the mesh the matrix describing the linear system to solve. The value of the matrix is the result of a reduction operation of some elements to be stored in a sparse matrix. The irregularity of the structure and the sequentialization of the reduction is challenging to achieve an efficient parallelization. Except state of the art coloring approach, there is no recent research published on parallelizing for multicores. In the multicore context, the recent algorithm design for GPUs~\cite{Stanford,CPUGPUasm}.
 
-We apply our d\&C strategy for the parallelisation of the matrix assembly on an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure. We compare our results to the original pure MPI implementation and the coloring approach for shared memory parallelisation.
+We apply our d\&C strategy for the parallelization of the matrix assembly on an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure. We compare our results to the original pure MPI implementation and the coloring approach for shared memory parallelization.
 
 
 The paper outline is the following:
@@ -131,7 +131,7 @@ The main issue of coloring approach is the data locality. Indeed, elements of a 
 The main idea of the D\&C approach for shared memory parallelization is to create task level parallelism while preserving a good data locality and minimizing synchronization cost.
 Instead of increasing MPI domain decomposition and communications as data size increases, we increase the number of Cilk threads. MPI processes remain in moderate numbers.
 In this way, we take benefit of the machine topology and most of communications are replaced by data sharing.
-Results are expected to be equivalent with Cilk and MPI parallelisation than with pure MPI, on a small number of cores.
+Results are expected to be equivalent with Cilk and MPI parallelization than with pure MPI, on a small number of cores.
 On larger number of cores the D\&C approach is expected to continue scaling, while pure MPI should loose in performance.
 
 \subsubsection{Unstructured Domain Decomposition}
@@ -221,7 +221,7 @@ An assembly approach for Recursive Sparse Blocks matrices have also been experim
 
 \subsection{To do}
 Atomics\\
-Task Based Parallelisation SpMV, dongara and co \cite{MPI_task}\\
+Task Based parallelization SpMV, dongara and co \cite{MPI_task}\\
 
 \section{Experiments}
 To validate our approach, we apply the D\&C algorithm using Cilk and MPI on a the assembly step of an application from Dassault Aviation called DEFMESH.
