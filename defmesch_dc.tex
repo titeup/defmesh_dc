@@ -31,8 +31,7 @@ and
 
 \begin{abstract}
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machine.
-The pure MPI codes are wasting IO, memory and communication. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal.
-Hybrid MPI+threads is one of them. In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelisation on shared memory of an unstructured mesh assembly to sparse matrix.
+The pure MPI codes are wasting IO, memory and communication. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal such as hybrid MPI+threads. In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelisation on shared memory of an unstructured mesh assembly to sparse matrix.
 Our target application is an industrial CFD application from Dassault Aviation computing mesh deformation for structure optimization.
 The implementation is based on the versatile cilk runtime and standard MPI. The original fortran code has been modified so that the elision of our modification is equivalent to the original, pure MPI, application.
 Preliminary results on the first step of the application, the matrix assembly from mesh to CSR matrix storage format, are encouraging and show good locality and scalability characteristics.
@@ -47,43 +46,23 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, Matrix Assembly
 \pagestyle{empty}
 
 \section{Introduction}
-Positionment : code MPI compare to hybrid.\\
-Problem on FEM : assembling, parallelization with shared memory non trivial.\\
-Assembling on multicore, not on GPU (most of papers are for GPUs)\\\\
+%Positionment : code MPI compare to hybrid.\\
+%Problem on FEM : assembling, parallelization with shared memory non trivial.\\
+%Assembling on multicore, not on GPU (most of papers are for GPUs)\\\\
 
-Current algorithms and runtimes struggle to scale on a large number of cores and show a poor parallel efficiency on current HPC machine. The main reason is that the runtimes
-and algorithms are using large amount of global communication and synchronization. It causes a severe problem on an increasing number of nodes and core per nodes.
-HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal. 
-The major effects of the core count increase per node are a lower memory per core, higher requirement for concurrency (TLP, ILP, vector), higher coherency traffic and higher
-cost for coherency protocol. The result is severe challenge for performance scalability. The many-core accelerators such has the Xeon Phi exacerbate even more these issues. 
-In order to help the developer to make a better usage of the shared resources and mitigate the node scalability issue, we propose and evaluate a new parallelisation strategy 
-to exploit more efficiently the shared memory level for iterative method using unstructured meshes. The objective is to take advantage of the full topology of the machine and
-enhance the data and synchronization locality to release pressure on the distributed structure such as memory, network and global I/O. 
+Current algorithms and runtimes struggle to scale on a large number of cores and show a poor parallel efficiency on current HPC machine. 
+The major effects of the core count increase per node are a lower memory per core, higher requirement for concurrency (TLP, ILP, vector), higher coherency traffic and higher cost for coherency protocol. The result is severe challenge for performance scalability. The many-core accelerators such has the Xeon Phi exacerbate even more these issues. HPC users have to explore new paradigm to make an efficient usage of the new resources at their disposal. 
 
-In this paper we evaluate the Divide and Conquer, D\&C, approach on  unstructured meshes. Our implementation is based on a task-based runtime, Cilk~\cite{cilk5}.
-The rational is to divide recursively the work in two or more independent tasks, synchronize locally these tasks before returning. This recursive approach has many advantages.
-First the recursive sharing naturally exposes high concurrency. As long as the application is large enough, it is possible to produce a deeper tree to get more concurrency
-and therefore match the higher requirement of many-core system. Another advantages is the locality of synchronization, only nodes of a same parent node in the recursive
-tree needs to be synchronized. And finally, it greatly improved the data locality by reordering the data in smaller independent sets. The D\&C approach is particularly
-interesting for its ability to scale naturally to an increasing number of node thanks to its architecture oblivious concept.
-Each leaves is responsible of its own data and there is a very minimal amount of sharing, avoiding costly locks and coherency protocols. 
+In order to help the developer to make a better usage of the shared resources and mitigate the node scalability issue, users can modify their application using hybrid MPI + thread to take advantage of the full topology of the machine and enhance the data and synchronization locality.
+In their paper, we propose and evaluate a new parallelisation strategy based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task-based runtime, Cilk~\cite{cilk5}. 
 
-We apply the d\&C strategy for the parallelisation of an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure.
-The process alterate the mesh geometry and be conservative of the mesh topology.  We have to work on a very unstructured mesh. Therefore, load balancing and interface
-computation prevent us to use geometrical domain decomposition.
-We use Metis~\cite{Metis} to do a topological domain decomposition that will not vary with the mesh deformation.
-The application iterates over three basic steps:
-\begin{itemize}
-\item Edge matrix assembly to CSR storage from the mesh coordinate array. This step potentially needs MPI communication in the case of using the elastic version.
-Explain in section ...
-\item Solve ... ??? what?
-\item Update the mesh coordinate and value, exchange the halo with other MPI rank.
-\end{itemize}
 Say somewhere that one of the major difficulty when parallelizing this numerical code is to be very conservative on the numerical result. explain shortly why and how we deal
 with that.
 
-Even if the final goal is to parallelize the full application, we focus first on the assembly part. Indeed, despite a limited time coverage, renumbering, reordering,
-task tree structure because...Explain what is assembling and why this is difficult to parallelize
+
+
+We apply the d\&C strategy for the parallelisation of an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure.
+
 
 Paper outline
 Section 1 presents rge application, its main characteristics and the test cases.
@@ -93,6 +72,21 @@ Section 4 presents the result of performance and scalability.
 In section 4 we explores the related works before presenting in section 5 the future works and conclusion
 
 \section{Matrix Assembly}
+
+
+%The process alterate the mesh geometry and be conservative of the mesh topology.  We have to work on a very unstructured mesh. Therefore, load balancing and interface
+%computation prevent us to use geometrical domain decomposition.
+%We use Metis~\cite{Metis} to do a topological domain decomposition that will not vary with the mesh deformation.
+%The application iterates over three basic steps:
+%\begin{itemize}
+%\item Edge matrix assembly to CSR storage from the mesh coordinate array. This step potentially needs MPI communication in the case of using the elastic version.
+%Explain in section ...
+%\item Solve ... ??? what?
+%\item Update the mesh coordinate and value, exchange the halo with other MPI rank.
+%\end{itemize}
+
+
+
 Matrix assembly is present in most of scientific applications. On an unstructured mesh, this step is non trivial to parallelize.
 Indeed, contributions of neighbor elements are reduced on shared edges which create concurrency issues.
 A simple assembly illustration on a 2D regular mesh is presented in figure \ref{fig:2Dasm}.
@@ -122,6 +116,19 @@ The main issue of coloring approach is the data locality. Indeed, elements of a 
 \end{figure}
 
 \subsection{Divide \& Conquer}
+
+
+%D\&C, approach on  unstructured meshes
+%The rational is to divide recursively the work in two or more independent tasks, synchronize locally these tasks before returning. This recursive approach has many advantages. First the recursive sharing naturally exposes high concurrency. As long as the application is large enough, it is possible to produce a deeper tree to get more concurrency and therefore match the higher requirement of many-core system. Furthermore synchronization are local: only nodes of a same parent node in the recursive
+%tree needs to be synchronized. And finally, it greatly improved the data locality by reordering the data in smaller independent sets. 
+%
+%The D\&C approach is particularly
+%interesting for its ability to scale naturally to an increasing number of node thanks to its architecture oblivious concept.
+%Each leaves is responsible of its own data and there is a very minimal amount of sharing, avoiding costly locks and coherency protocols. 
+%
+
+
+
 The main idea of the D\&C approach for shared memory parallelization is to create task level parallelism while preserving a good data locality and minimizing synchronization cost.
 Instead of increasing MPI domain decomposition and communications as data size increases, we increase the number of Cilk threads. MPI processes remain in moderate numbers.
 In this way, we take benefit of the machine topology and most of communications are replaced by data sharing.
