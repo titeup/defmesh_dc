@@ -339,12 +339,10 @@ We can expect even better results when the solver will be properly parallelized.
 Further investigation are needed to evaluate why the pure MPI version does not scale perfectly in our experiments.
 
 \section{Conclusion and Futur Work}
-Assembly is only the 5 first percent of the DEFMESH application, but this is the starting point.
-This step can represent much more time in other mesh deformation codes such has seismic simulation like SpecFem3D.
-Hardware counters already show that vertex and elements reordering bring substantial improvements on data locality.
-We also show a global improvement on RAM usage (?) etc...
-The next step will be to work on the solver stage, using similar principles to enhance scalability and efficiency.
-Extension will focus on D\&C friendly data structure definition, using D\&C on other part of the application such as the SpMV product or the iterative solver. 
+
+Matrix assembly is the first step of many FEM applications such as seismic simulation, metal forming or crash test simulations. Depending on the application, this step can cover more than 80\% of the computation time. In the Dassault DEFMESH, our current implement ion is already faster than the original pure MPI version and overpass in performance and scalability the state-of-the-art  coloring approach. Even without exploiting the thread level parallelism, the D\&C methodology improve significantly the locality and thus the scalability and exeution time. The pure MPI version with D\&C has a perfect strong scaling on our benchmark architecture.
+
+As a future work,  we will finishing the parallelization of the separator in the matrix assembly step and experiment on larger core count. We strongly believe than our approach will provide very good performance on new many cores such as Xeon Phi. Extension will focus on D\&C friendly data structure definition and using D\&C on other part of the application such as the SpMV product or the iterative solver. 
 
 \bibliographystyle{unsrt}
 \bibliography{dc_bib}
