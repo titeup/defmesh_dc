@@ -107,6 +107,7 @@ In that case we envision two different approaches, a state-of-the-art coloring a
 \end{figure}
 
 \subsection{Coloring}
+\label{sec:col}
 Coloring principle is to avoid race conditions by assigning a different color to elements sharing an edge.
 Although determining a minimal coloring is NP-complete, create a coloring with an undefined number of color is simple.
 At the end of coloring, all elements of a same color have not any common edge and can be computed in parallel. However, each color must be treated one after the other.
@@ -151,10 +152,12 @@ This tree is represented in the figure below.
 \end{figure}
 
 \subsubsection{Data Reordering}
-In order to increase the data locality, we permute the nodes and the elements arrays. Indeed the elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
+In order to increase the data locality, we permute the nodes and the elements arrays.
+Indeed the elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve locality between tasks.
-To achieve these permutations, we start from METIS output array giving for each node of the mesh, its partition number. From this array, we compute our own partition array on elements by distinguishing
-elements composed of nodes from several partitions. These elements are called separator elements and belongs to a distinct partition stored next to its two partitions.
+To achieve these permutations, we start from METIS output array giving for each node of the mesh, its partition number.
+From this array, we compute our own partition array on elements by distinguishing elements composed of nodes from several partitions.
+These elements are called separator elements and belongs to a distinct partition stored next to its two partitions.
 This storage is illustrated in the figure \ref{fig:dataPermut}.
 \begin{figure}[htp]
  \centering
@@ -163,8 +166,9 @@ This storage is illustrated in the figure \ref{fig:dataPermut}.
  \label{fig:dataPermut}
 \end{figure}
 
-Otherwise, since the partitionment is topological, cuts are done on edges rather than geometrical coordinates. This allows to compute the sub-domains only once
-for a given mesh, despite of its deformations. Thus, the time passed in METIS partitioning and in the creation of permutations arrays and recursion tree is negligible since it is done only once.
+Otherwise, since the partitionment is topological, cuts are done on edges rather than geometrical coordinates.
+This allows to compute the sub-domains only once for a given mesh, despite of its deformations.
+Thus, the time passed in METIS partitioning and in the creation of permutations arrays and recursion tree is negligible since it is done only once.
 These structures can be simply stored with the mesh for instance. Then on following runs, the application needs only to read these data and apply the permutations.
 
 \subsubsection{Cilk Implementation}
@@ -192,31 +196,21 @@ explain why we want task base runtime, load balancing, fine grain...\\
 explain problematic of sync, conherency, vecto etc.\\
 
 \section{Related Works}
-The section overview differents methods used to achieve Finite Element Assembly step in parallel.
-Most of the recent publications are focusing on GPU architectures.
+Many choices are available to complete FEM assembly in parallel.
+All methods have their advantages and their limitations, depending for instance on the target architecture or the mesh size.
 
-A Stanford study \cite{Stanford} investigates into several ways to compute FEM assembly on GPUs.
-These approaches can be classified in three categories.
-
-\emph{Assembly by non-zero value of the system of equation}\\
-The first method consists to use one thread per non-zero value to compute. Several variants exist.
-Each thread can store needed contributions from mesh elements to global or local memory. Then, all needed contributions to compute non-zero values are reduced in parallel.
+Several studies \cite{Stanford,CPUGPUasm} investigates into different ways to compute FEM assembly on CPUs and GPUs.
+One method consists in assembling by non-zero value of the system of equation. Several variants of this method exist.
+A first one is to store contributions from mesh elements to global or local memory in parallel, and then reduce still in parallel these contributions to compute non-zero values.
 By arranging data layout, this method can offer good performances. However, it can suffers of load imbalancing since requirement for non-zero values are heterogeneous.
-Moreover, it can be very memory consuming, both in capacity and bandwith and thus limited to small test cases.
+Moreover, it can be very memory consuming and thus limited to small test cases.
 An other variant consists to use one thread for the whole assembly step of one non-zero value at a time, but this approach leads to redundant computations.
 
-\emph{Assembly by row of the system of equation}\\
-In this method, one thread is used per row of the matrix. This resolves load balancing issues since computational requirement are more homogeneous between rows.\\
-**** A finir... ****
+An other method consists in assembling by mesh element. One thread is responsible for the whole assembly step of one element at a time.
+In order to launch several threads in parallel on independent elements, a coloring approach is often used.
+In this way, each thread performs the same amount of computation, but suffers of poor performances because of a bad data locality as explained is section \ref{sec:col}.
 
-\emph{Assembly by mesh element}\\
-A final method studied in this investigation is to use one thread per mesh element computation and assembly.
-In order to work on independent elements and launch all threads in parallel, a coloring approach is often used.
-With this method, each thread perform the same amount of computation. However, it suffers of poor performances because of a bad data locality.
-Coloring is explained briefly below.
-
-Many choices are available to complete FEM assembly. All methods have their advantages and their limitations, depending for instance on target architecture, mesh size...
-We propose in this paper a new approach based on the D\&C recursive algorithm which try to resolve most of this issues.
+An assembly approach for Recursive Sparse Blocks matrices have also been experimented \cite{RSBasm}, but seems to be higly memory-bandwith bound.
 
 \subsection{To do}
 Atomics\\
@@ -228,18 +222,21 @@ We compare our results to the original pure MPI version of the assembly step and
 
 \subsection{Dassault Aviation DEFMESH Application}
 The DEFMESH application is a Computational Fluid Dynamics (CFD) code based on a Finite Element Method (FEM).
-It has been fully parallelized with the MPI protocol and recently with OpenMP in few parts.
-This code is used to deform an initial mesh in order to optimize its fluid flows.
+It is used to apply deformations on an initial mesh in order to optimize its fluid flows.
+It is fully parallelized with the MPI protocol and recently with OpenMP in few parts of the solver.
+This solver is based on a conjugate gradient method and is mainly composed of dot products, SpMVs and reductions.
 
-DEFMESH main kernel is decomposed in three steps explained in more details below.
+DEFMESH main kernel is decomposed in three steps.
 First one is the assembly step where mesh data are gathered into a CSR structure.
-Second step is the solver step which works on this CSR structure and compute optimal displacements.
+Second step is the solver step which works on this CSR structure and computes optimal displacements.
 Final step is the update of mesh coordinates using previously computed deformations.
 
-Two versions of the kernel exist, a Laplacian version and an elastic version. Elastic version has a more complex assembly step and different boundary condition for the solver (?).
+Two versions of the kernel exist, a Laplacian version and an elastic version. Elastic version has a more complex assembly step and different boundary conditions for the solver (?).
+While a simple scalar is computed for each edge of the mesh in the Laplacian version, a 3 by 3 matrix based on a more complex equation is computed in the elastic version.
 Moreover, both versions can be whether linear or non linear.
-The linear versions compute displacements in one step of deformation. In the non linear versions, the deformation is split into a given number \emph{N} of smaller deformations.
-The mesh is updated after each deformation and thus, each step of the kernel are repeted \emph{N} times.
+The linear versions compute displacements in one step of deformation using the conjugate gradient methos as a direc method.
+In the non linear versions, the deformation is split into a given number \emph{N} of smaller deformations.
+The mesh is updated after each deformation and thus, each step of the kernel are repeted \emph{N} times. The solver is then used as an iterative method.
 
 We launch this application on two different test cases which are both irregular meshes from Dassault Aviation.
 First one is a small mesh of 152 086 elements and 27 499 nodes which represents an M6 wing. We used it for developing and debugging.
@@ -248,8 +245,6 @@ This EIB test case has been used for experiments and measures presented in next 
 
 \subsubsection{To do}
 nice picture of mesh deformation comparing variants\\
-explain the difference for the assembly step L,NL\\
-Solver, conjugate gradient, ddot, spmv, reduction\\
 Communication for halo exchange\\
 
 \subsection{Experimental Setups}
@@ -283,7 +278,7 @@ composed of twelve cores distributed in two sockets of 6-cores Intel® Xeon® X5
 \begin{figure}[htp]
  \centering
  \label{fig5}
- \includegraphics[scale=0.33]{topo_mauduit.png}
+ \includegraphics[scale=0.35]{topo_mauduit.png}
  \caption{UVSQ server topology}
 \end{figure}
 
@@ -344,14 +339,12 @@ We can expect even better results when the solver will be properly parallelized.
 Further investigation are needed to evaluate why the pure MPI version does not scale perfectly in our experiments.
 
 \section{Conclusion and Futur Work}
-Assembling is only the 5 first percent of the app, but this is the starting point. reprints large time in other some other mesh deformation code such has seismic
-simulation like specfem3D.
-HW counter already show that vertex and element reordering bring septential improvement on data locality. We also show a global improvement on RAM usage (?) etc...
-The next step will be to work on the solver stage, using similar printiple to enhance scalability and efficiency. Explore D and C friendly data structure because CSR sucks.  
-
-Extension will focus on D\&C friendly data structure definition, using D\&C on other part of the  application such as the spMV product or the iterative solver. 
-
-Can we do something quick about spmv? we have some material on it...
+Assembly is only the 5 first percent of the DEFMESH application, but this is the starting point.
+This step can represent much more time in other mesh deformation codes such has seismic simulation like SpecFem3D.
+Hardware counters already show that vertex and elements reordering bring septential improvements on data locality.
+We also show a global improvement on RAM usage (?) etc...
+The next step will be to work on the solver stage, using similar principles to enhance scalability and efficiency.
+Extension will focus on D\&C friendly data structure definition, using D\&C on other part of the application such as the SpMV product or the iterative solver. 
 
 \bibliographystyle{unsrt}
 \bibliography{dc_bib}
