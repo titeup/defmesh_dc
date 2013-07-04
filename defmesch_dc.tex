@@ -199,7 +199,8 @@ On the DEFMESH application, we observe a better scalability with the \emph{cilk\
 \subsubsection{To do}
 metis explain space filling curve etc.\\
 explain why we want task base runtime, load balancing, fine grain...\\
-explain problematic of sync, conherency, vecto etc.\\
+explain problematic of sync, conherency, vecto (future work hybrid d\&c + coloring) etc.\\
+explain compatibility with mpi\\
 
 \section{Related Works}
 Many choices are available to complete FEM assembly in parallel.
@@ -242,7 +243,7 @@ While a simple scalar is computed for each edge of the mesh in the Laplacian ver
 Moreover, both versions can be whether linear or non linear.
 The linear versions compute displacements in one step of deformation using the conjugate gradient methos as a direc method.
 In the non linear versions, the deformation is split into a given number \emph{N} of smaller deformations.
-The mesh is updated after each deformation and thus, each step of the kernel are repeted \emph{N} times. The solver is then used as an iterative method.
+The mesh is updated after each deformation and thus, each step of the kernel are repeted $N$times. The solver is then used as an iterative method.
 
 We launch this application on two different test cases which are both irregular meshes from Dassault Aviation.
 First one is a small mesh of 152 086 elements and 27 499 nodes which represents an M6 wing. We used it for developing and debugging.
@@ -270,9 +271,7 @@ We present the results both in terms of execution times and of parallel efficien
 In all the graphics, the X axis represents the number of cores used. It corresponds to the product of MPI ranks by the number of Cilk / OpenMP threads.
 In execution times graphics, the Y axis correspond either to RDTSC cycles (assembly step) or MPI\_Wtime seconds (solving step).
 Concerning efficiency, the Y axis represents parallel efficiency given by the following formula:
-
-\emph{Efficiency on p cores = Time of the sequential algorithm / ( p * Time on p cores)}\\
-
+$$Efficiency_{p-cores} = \frac{Time_{sequential}}{p*Time_{p-core}}$$
 Graphics include the measures of the “Ref” and the “D\&C” versions.
 For each of them, we use 1, 4, 8 and 12 MPI tasks and from 1 to 12 Cilk and OpenMP threads while the combination of MPI processes per Cilk/OMP threads is lower or equal to 12,
 which correspond to the number of cores available. In all cases, the number of Cilk threads is equal to the number of OpenMP threads.
