@@ -111,7 +111,7 @@ Determining a minimal coloring is NP-complete, but create a coloring with an und
 A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colApp}.
 
 \begin{figure}[htp]
- \includegraphics[scale=0.25]{Coloring_approach.png}
+ \includegraphics[scale=0.2]{Coloring_approach.png}
  \begin{verbatim}
 From initial Element_to_Node array {
     create Node_to_Element array
@@ -127,8 +127,9 @@ For each color - in sequential
  \label{fig:colApp}
 \end{figure}
 
-
-The main issue of coloring approach is the data locality. Indeed, elements of a same color are distant from each other and are not stored contiguously in memory.
+Although coloring is an efficient approach for vectorial machines, it is not well adapted for actual parallel architectures.
+The main issue is the data locality. Indeed, elements of a same color are distant from each other and are not stored contiguously in memory.
+This causes important cache misses which leads to poor performances.
 
 \subsection{Divide \& Conquer}
 %D\&C, approach on  unstructured meshes
@@ -167,7 +168,9 @@ Since these permutations are applied in all MPI domains, we renumber nodes on th
 \end{figure}
 
 This approach is then applied recursively to all sub-domains, offering a large amount of parallelism.
-As illustrated in figure~\ref{fig:DCexe}, this results in a partitioning tree where each leaf is associated to an independent Cilk task and executes the assembly on its sub-domain.
+As illustrated in figure~\ref{fig:DCrec}, this results in a partitioning tree where each leaf is associated to an independent Cilk task and executes the assembly on its sub-domain.
+In order to refine permutations without multiplying tasks, it is possible to stop the recursion before reaching the leaves.
+Thus, tasks execute sequentially and in one block the left and right children and the corresponding separator which are stored contiguously in memory.
 
 Otherwise, since the partitionment is topological, cuts are done on edges rather than geometrical coordinates.
 This allows to compute sub-domains only once for a given mesh, despite of its deformations.
@@ -176,7 +179,7 @@ On next runs, the application needs only to apply the permutations before execut
  \centering
  \includegraphics[scale=0.25]{DC_recursion.png}
  \caption{D\&C recursive execution}
- \label{fig:DCexe}
+ \label{fig:DCrec}
 \end{figure}
 
 \subsubsection{Cilk Implementation}
@@ -185,20 +188,18 @@ It allows to \emph{spawn} and \emph{sync}hronize many parallel tasks.
 All these tasks are listed in queues and executed by \emph{worker} threads.
 In order to improve the load balancing, Cilk runtime uses a work-stealing scheduler. Once a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
 
-Starting from the tree shown in figure \ref{fig:DCexe}, the Cilk implementation is then straightforward.
-Execution runs through the tree starting from the root and spawning a new Cilk task at each node separation.
-This creates at each step of recursion parallelism between left and right parts.
-Then, when recursion reaches a leaf, the code is simply running the sequential assembling on its sub-domain.
-After left and right sub-domains are done, the corresponding Cilk tasks synchronize and one of them continue on the separator computation.
-In order to have finer permutations without multiply Cilk tasks, it is possible to stop the recursion earlier.
-In this way, tasks no longer corresponds to leaves of the tree, but to nodes.
-Thus, they execute sequentially and in one block the left, right and corresponding separator partitions which are stored contiguously in memory.
+Starting from the tree shown in figure \ref{fig:DCrec}, the Cilk implementation is then straightforward.
+While execution is not arrived to a leaf, left and right sub-domains of each node are split in two tasks and executed in parallel.
+Then, when recursion reaches the leaves, the sequential assembly code is executed.
+Once two neighbor sub-domains are done and synchronized, the associated separator is computed.
+A pseudo-code is given in figure~\ref{fig:DCcode}.
 
 In some cases, when all elements or nodes are access in order inside a loop, there is no need to use a recursive task tree.
 Indeed Cilk provides, as well as OpenMP, an easy way to parallelize loops using the \emph{cilk\_for} keyword.
 By simply substituting the original \emph{for} by this keyword, iterations of the loop are split in several parallel tasks.
 On the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
-\begin{verbatim}
+\begin{figure}[htp]
+ \begin{verbatim}
 foo (sub-domain) {
     if Node is not a leaf
         spawn foo (sub-domain.left)
@@ -208,7 +209,10 @@ foo (sub-domain) {
     else
         sequential assembly (sub-domain)
 }
-\end{verbatim}
+ \end{verbatim}
+ \caption{D\&C assembly pseudo-code}
+ \label{fig:DCcode}
+\end{figure}
 
 \section{Related Works}
 Many choices are available to complete FEM assembly in parallel.
@@ -233,9 +237,9 @@ Task Based parallelization SpMV, dongara and co \cite{MPI_task}\\
 
 \section{Experiments}
 To validate our approach, we apply the D\&C algorithm using Cilk and MPI on a the assembly step of an application from Dassault Aviation called DEFMESH.
-We compare our results to the original pure MPI version of the assembly step and also to a MPI + OpenMP version which uses the coloring approach.
+We compare our results to the original pure MPI version of the assembly step and also to a MPI + OpenMP version using the coloring approach.
 
-\subsection{Dassault Aviation DEFMESH Application}
+\subsection{TO DO QUANG - Dassault Aviation DEFMESH Application}
 The DEFMESH application is a Computational Fluid Dynamics (CFD) code based on a Finite Element Method (FEM).
 It is used to apply deformations on an initial mesh in order to optimize its fluid flows.
 It is fully parallelized with the MPI protocol and recently with OpenMP in few parts of the solver.
@@ -253,72 +257,74 @@ The linear versions compute displacements in one step of deformation using the c
 In the non linear versions, the deformation is split into a given number \emph{N} of smaller deformations.
 The mesh is updated after each deformation and thus, each step of the kernel are repeated $N$times. The solver is then used as an iterative method.
 
-We launch this application on two different test cases which are both irregular meshes from Dassault Aviation.
+We launch this application on two different test cases which are both unstructured meshes from Dassault Aviation.
 First one is a small mesh of 152 086 elements and 27 499 nodes which represents an M6 wing. We used it for developing and debugging.
 Second test case, called EIB, is composed of 6 346 108 elements and 1 079 758 nodes. It represents the displacement of fuel tank along a plane fuselage.
 This EIB test case has been used for experiments and measures presented in next section.
 
 \subsubsection{To do}
 nice picture of mesh deformation comparing variants\\
-Communication for halo exchange\\
 
 \subsection{Experimental Setups}
-Experiments have been done on the Dassault Aviation EIB test case. It is an irregular mesh composed of 6 346 108 elements and 1 079 758 nodes.
-It represents the displacement of fuel tank along a plane fuselage.
+Experiments are done on the Dassault Aviation EIB test case. EIB is an unstructured mesh composed of 6 346 108 elements and 1 079 758 nodes.
+It represents the displacement of a fuel tank along a plane fuselage.
 
-In the following experiments, we compare two versions of the DEFMESH application: the original one from Dassault Aviation called “Ref” and the new
-Divide \& Conquer version called “D\&C”. The original version uses MPI between the different blocks of the mesh and OpenMP in some loops of the solver.
-The D\&C version, as described above uses a recursive partitioning of each block of the mesh and exploits, in addition to MPI and OpenMP, a Cilk task parallelism
-in the assembly step.
+In the following experiments, we compare two versions of the DEFMESH application: the original one from Dassault Aviation called “Ref” and the new Divide \& Conquer version called “D\&C”.
+The original version uses MPI between the different blocks of the mesh and OpenMP in some loops of the solver.
+The D\&C version, as described above uses a recursive partitioning of each block of the mesh. It exploits, in addition to MPI and OpenMP, a Cilk task parallelism of the assembly step.
+We also compare our results to the coloring implementation of the assembly, using OpenMP parallelism.
 
 For each of these versions, we consider the two variants of DEFMESH: the Laplacian one and the elasticity one.
-Both of them are non linear solvers with 50 steps of resolution. Measures correspond to the average time of one iteration.
-In all cases we measure separately the assembly step, where the D\&C approach has been applied and the solving step, not yet modified.
+For both of them, the application runs in 50 steps of resolution and measures correspond to the average time of one iteration.
+In all cases we measure the assembly step, where the D\&C approach has been applied.
+We also measure the solver to estimate the impact of the data permutations on the rest of the code.
 
 We present the results both in terms of execution times and of parallel efficiency.
-In all the graphics, the X axis represents the number of cores used. It corresponds to the product of MPI ranks by the number of Cilk / OpenMP threads.
-In execution times graphics, the Y axis correspond either to RDTSC cycles (assembly step) or MPI\_Wtime seconds (solving step).
-Concerning efficiency, the Y axis represents parallel efficiency given by the following formula:
+In all the graphics, the X axis represents the number of cores used. It corresponds to the product of MPI processes by the number of threads.
+In graphics presenting execution times, the Y axis correspond to RDTSC cycles for the assembly step and to MPI\_Wtime seconds for the solver.
+Concerning efficiency, the Y axis represents the parallel efficiency given by the following formula:
 $$Efficiency_{p-cores} = \frac{Time_{sequential}}{p*Time_{p-core}}$$
-Graphics include the measures of the “Ref” and the “D\&C” versions.
-For each of them, we use 1, 4, 8 and 12 MPI tasks and from 1 to 12 Cilk and OpenMP threads while the combination of MPI processes per Cilk/OMP threads is lower or equal to 12,
-which correspond to the number of cores available. In all cases, the number of Cilk threads is equal to the number of OpenMP threads.
+For each graphics, we use 1, 4, 8 and 12 MPI tasks and from 1 to 12 threads while the combination of MPI processes per threads is lower or equal to 12.
+This corresponds to the number of cores available. In all cases, the number of Cilk threads used in the assembly is equal to the number of OpenMP threads used in the solver.
 We also varied the number of METIS partitions and Cilk tasks in a large scope of values but we have not observed significant changes in the results.
 Final values are 512 partitions and 128 Cilk tasks. This correspond to approximately 10 tasks per core, which is recommended in Cilk documentations.
 
-All the experiments have been done with default the OpenMP affinity set to scatter and Cilk threads are not pinned. These experiments runs on an UVSQ server
-composed of twelve cores distributed in two sockets of 6-cores Intel® Xeon® X5650 clocked at 2.67 GHz. The topology of the machine is described in the following illustration.
-\begin{figure}[htp]
- \centering
- \label{fig5}
- \includegraphics[scale=0.35]{topo_mauduit.png}
- \caption{UVSQ server topology}
-\end{figure}
+All experiments have been done with default policies. The OpenMP affinity is set to scatter and Cilk threads are not pinned.
+These experiments runs on an UVSQ server composed of twelve cores distributed in two sockets of 6-cores Intel® Xeon® X5650 clocked at 2.67 GHz.
+Concerning memory hierarchy, each core has its own L1 and L2 caches of resp. 32KB and 256KB and a shared L3 cache of 12MB. Main memory is split in two NUMA nodes of 16GB.
 
 \subsection{Results}
-\subsubsection{Laplacian Assembly}
-\begin{figure}[htp]
- \centering
- \subfigure[Execution time]{\label{fig6:a}\includegraphics[scale=0.178]{Laplacian_asm_time.png}}\hspace{1em}%
- \subfigure[Parallel efficiency]{\label{fig6:b}\includegraphics[scale=0.178]{Laplacian_asm_efficiency.png}}
- \caption{Laplacian assembly step}
-\end{figure}
-On the execution time curve, the D\&C approach is close to pure MPI but there is still a loss of efficiency beyond 6 cores.
-This is probably due to the remaining sequential part of the D\&C code. Indeed, separator elements are not yet parallelized and can represent an important proportion
-of the computation, especially for the one at the beginning of the recursion.
+\subsection{Assembly}
+As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low amount of work the D\&C approach is slower than pure MPI, especially when we increase the number of cores.
+This is probably due to the remaining sequential part of the D\&C code.
+Indeed, separator elements are not yet parallelized and can represent an important proportion of the computation, especially for the one at the beginning of the recursion.
+Moreover according to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases too. This is confirmed on figure~\ref{fig:asmCurvesC}.
 
-As we can see on the efficiency curve, the more the number of cores increase, the more the efficiency decrease. According to the Amdahl law,
-the proportion of the sequential part over the parallel part is increasing with the number of cores. Moreover on the Laplacian solver, the amount of work for each
-element in the assembly step is quite low and separators even less negligible. In the pure MPI version, this problem is not present since the whole mesh assembly is parallelized.
+In the elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{fig:asmCurvesD}, the D\&C approach become equivalent to pure MPI.
+Indeed, the amount of work of the assembly step is bigger than in the Laplacian variant.
+Thus, the sequential part, ie separators computing, is less significant and the scalability gets better.
+Moreover in the D\&C version, data continue to fit in L2 cache whereas pure MPI starts to slow down.
+Where the original version works on elements located anywhere in the MPI domains, the D\&C version works on elements packed contiguously in small sub-domains corresponding to the Cilk tasks.
+With this approach, whatever the size of the data set, the tasks will always fit in cache if we increase the number of METIS partitions.
 
 All in all, these first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
-
-\subsubsection{Laplacian Solver}
 \begin{figure}[htp]
  \centering
- \label{fig7}
- \includegraphics[scale=0.2]{Laplacian_solver_time.png}
- \caption{Laplacian solver execution time}
+ \subfigure[Laplacian execution time]{\label{fig:asmCurvesA}\includegraphics[scale=0.178]{Laplacian_asm_time.png}}\hspace{1em}
+ \subfigure[Elasticity execution time]{\label{fig:asmCurvesB}\includegraphics[scale=0.19]{Elasticity_asm_time.png}}\hspace{1em}
+ \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[scale=0.178]{Laplacian_asm_efficiency.png}}
+ \subfigure[Elasticity parallel efficiency]{\label{fig:asmCurvesD}\includegraphics[scale=0.19]{Elasticity_asm_efficiency.png}}
+ \caption{Assembly measures}
+ \label{fig:asmCurves}
+\end{figure}
+
+\subsubsection{Solver}
+\begin{figure}[htp]
+ \centering
+ \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[scale=0.2]{Laplacian_solver_time.png}}
+ \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[scale=0.2]{Elasticity_solver_time.png}}
+ \caption{Solver measures}
+ \label{fig:solCurves}
 \end{figure}
 The gains offered by the OpenMP parallelism are far from ideal scaling because of the small proportion of code parallelized in the solver.
 Despite we did not modify the solver part, we observe a small benefit for the D\&C version compared to the reference version.
@@ -326,25 +332,10 @@ This gain is probably due to a better data locality generated by the permutation
 To confirm the locality hypothesis, we measured the L3 cache misses occurring during the solver and they are significantly lower with D\&C compared to the original version.
 We also tried to permute data randomly and observe a degradation of performances.
 
-\subsubsection{Elasticity Assembly}
-\begin{figure}[htp]
- \centering
- \subfigure[Execution time]{\label{fig8:a}\includegraphics[scale=0.19]{Elasticity_asm_time.png}}\hspace{1em}%
- \subfigure[Parallel efficiency]{\label{fig8:b}\includegraphics[scale=0.19]{Elasticity_asm_efficiency.png}}
- \caption{Elasticity assembly step}
-\end{figure}
-As we can see on the first curve, on the elasticity solver the D\&C approach is slightly faster than pure MPI and the parallel efficiency is equivalent.
-In the elasticity case, the amount of work of the assembly step is bigger than the Laplacian.
-Thus, the sequential part (ie separators computing) is less significant and the D\&C scalability gets better beyond 6 cores.
-Moreover in the D\&C version, data continue to fit in cache whereas MPI starts to slow down. Indeed, where the original version works on elements located
-anywhere in the current MPI block, the D\&C version works on elements packed contiguously in small blocks corresponding to the Cilk tasks.
-With this approach, whatever the size of the data set, the tasks will always fit in cache if we increase the number of METIS partitions.
-
 \subsubsection{Elasticity Solver}
 \begin{figure}[htp]
  \centering
  \label{fig9}
- \includegraphics[scale=0.2]{Elasticity_solver_time.png}
  \caption{Elasticity solver execution time}
 \end{figure}
 As we can see in the 4 MPI curves and for the same reasons than in the Laplacian solver, the D\&C version is still a little bit faster than the original version.
