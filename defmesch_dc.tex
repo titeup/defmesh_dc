@@ -33,7 +33,7 @@ Current algorithms and runtimes struggle to scale to a large number of cores and
 The pure MPI codes are wasting IO, memory and communications. HPC users have to explore new paradigms to make an efficient usage of the new resources at their disposal such as hybrid MPI+threads.
 In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization on shared memory of an unstructured mesh assembly to sparse matrix.
 Our target application is an industrial CFD application from Dassault Aviation computing mesh deformation for structure optimization.
-The implementation is based on the versatile Cilk runtime and standard MPI. The original fortran code has been modified so that the elision of our modification is equivalent to the original pure MPI application.
+The implementation is based on the versatile Cilk runtime and standard MPI. The original Fortran code has been modified so that the elision of our modification is equivalent to the original pure MPI application.
 Preliminary results on the matrix assembly of the application are encouraging and show good locality and scalability characteristics.
 \end{abstract}
 
@@ -51,9 +51,9 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, Matrix Assembly, FEM
 %Assembling on multicore, not on GPU (most of papers are for GPUs)\\\\
 
 Current algorithms and runtimes struggle to scale on a large number of cores and show a poor parallel efficiency on current HPC machine. 
-The major effects of the core count increase per node are a lower memory per core, higher requirement for concurrency (TLP, ILP, vector), higher coherency traffic and higher cost for coherency protocol.
-The result is a severe challenge for performance scalability. The many-core accelerators such as the Xeon Phi exacerbate even more these issues.
-HPC users have to explore new paradigms to make an efficient usage of the new resources at their disposal. 
+The major effects of the core count increase are a lower memory per core, higher requirement for concurrency (TLP, ILP, vector), higher coherency traffic and higher cost for coherency protocol.
+It results a severe challenge for performance scalability. The many-core accelerators such as the Xeon Phi exacerbate even more these issues.
+HPC users have to explore new paradigms to make an efficient usage of the new resources. 
 
 In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + thread to take advantage of the full topology of the machine and enhance the data and synchronization locality.
 In this paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task-based runtime, Cilk~\cite{cilk5}. 
@@ -62,7 +62,7 @@ We demonstrate the potential of the D\&C approach on the matrix assembly step fr
 This step consists in building from the mesh the matrix describing the linear system to solve.
 The values in the sparse matrix result from a reduction operation of some mesh elements.
 The irregularity of the structure and the sequentialization of the reduction are challenging to achieve an efficient parallelization.
-For multicores, except the state of the art coloring approaches, there is no recent research published on parallelizing matrix assembly.
+For multicores, except the state of the art coloring approaches, there is very few recent works published on parallelizing matrix assembly.
 In the manycore context, new algorithms are design for GPUs~\cite{Stanford,CPUGPUasm}, but can not be directly applied to shared multicores.
 
 We apply our D\&C strategy for the parallelization of the matrix assembly on an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure.
@@ -91,9 +91,9 @@ The paper outline is the following:
 Matrix assembly is present in most of scientific applications using Finite Element Methods.
 A simple assembly illustration on a 2D regular mesh is presented in figure~\ref{fig:2Dasm}.
 To compute the value on $(N1,N2)$ edge, we have to sum the contributions of elements $E1$ and $E2$.
-In 3D, the number of neighbor elements of an edge has no theoretical limits.
+In 3D, the number of neighbor elements of an edge has no theoretical limit.
 
-On an unstructured mesh, this step is non trivial to parallelize.
+Because of the reduction step and the domain decomposition, this step is non trivial to parallelize.
 To create parallelism, one must create independent domains to work on.
 In that case we envision two different approaches, a state-of-the-art coloring approach and our proposition of D\&C based on a topological recursive bisection.
 \begin{figure}[htp]
@@ -106,7 +106,7 @@ In that case we envision two different approaches, a state-of-the-art coloring a
 \subsection{Coloring}
 \label{sec:col}
 The coloring avoid race conditions by assigning a different color to elements sharing an edge.
-It is mainly developed for vectorial machines and allows to vectorize easily all elements of a same color.
+It was originally targeting vectorial machines because all elements of a same color are independent and thus can be vetorized.
 Determining a minimal coloring is NP-complete, but create a coloring with an undefined number of color is simple.
 A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colApp}.
 
