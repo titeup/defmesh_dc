@@ -55,7 +55,7 @@ The major effects of the core count increase are a lower memory per core, higher
 It results a severe challenge for performance scalability. The many-core accelerators such as the Xeon Phi exacerbate even more these issues.
 HPC users have to explore new paradigms to make an efficient usage of the new resources. 
 
-In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + thread to take advantage of the full topology of the machine and enhance the data and synchronization locality.
+In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine and enhance the data and synchronization locality.
 In this paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task-based runtime, Cilk~\cite{cilk5}. 
 
 We demonstrate the potential of the D\&C approach on the matrix assembly step from Finite Element Methods, FEM.
