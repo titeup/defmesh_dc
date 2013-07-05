@@ -63,17 +63,17 @@ This step consists in building from the mesh the matrix describing the linear sy
 The values in the sparse matrix result from a reduction operation of some mesh elements.
 The irregularity of the structure and the sequentialization of the reduction are challenging to achieve an efficient parallelization.
 For multicores, except the state of the art coloring approaches, there is no recent research published on parallelizing matrix assembly.
-In the manycore context, new algorithms are design for GPUs~\cite{Stanford,CPUGPUasm}, but can not be applied to shared multicores.
+In the manycore context, new algorithms are design for GPUs~\cite{Stanford,CPUGPUasm}, but can not be directly applied to shared multicores.
 
 We apply our D\&C strategy for the parallelization of the matrix assembly on an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure.
 We compare our results to the original pure MPI implementation and the coloring approach for shared memory parallelization.
 \\\\
 The paper outline is the following:
 \begin{itemize}
-\item Section 2 presents the matrix assembly step in FEM applications using the coloring approach and our D\&C version using Cilk and MPI.
-\item Section 3 presents the related works on recent FEM assembly methods and uses of D\&C principle on such FEM applications.
-\item Section 4 presents the experimental setups and results on the assembly step of DEFMESH application from Dassault Aviation.
-\item Section 5 is the conclusion and present our future works.
+\item Section 2 presents the matrix assembly in FEM applications using the coloring approach and our D\&C proposal using Cilk and MPI.
+\item Section 3 presents related works on recent assembly approaches and uses of D\&C on FEM applications.
+\item Section 4 presents the experimental setups and results of the assembly parallelization of a Dassault Aviation application, called DEFMESH.
+\item Section 5 is the conclusion and presents our future works.
 \end{itemize}
 
 \section{Matrix Assembly}
@@ -106,25 +106,28 @@ In that case we envision two different approaches, a state-of-the-art coloring a
 \subsection{Coloring}
 \label{sec:col}
 The coloring avoid race conditions by assigning a different color to elements sharing an edge.
-Each element of a same color can be computed in parallel, but every color must be evaluated sequentially.
-Although determining a minimal coloring is NP-complete, create a coloring with an undefined number of color is simple.
-A pseudo-code is given in figure~\ref{fig:colApp} with a simple 2D coloring example.
+It is mainly developed for vectorial machines and allows to vectorize easily all elements of a same color.
+Determining a minimal coloring is NP-complete, but create a coloring with an undefined number of color is simple.
+A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colApp}.
+
 \begin{figure}[htp]
  \includegraphics[scale=0.25]{Coloring_approach.png}
  \begin{verbatim}
- From initial Element_to_Node array, create:
- -> Node_to_Element array
- -> Element_to_Element array
- -> Element_to_Color array
- -> Color_to_Element array
-
- For each color - in sequential
-     For all elements of current color - in parallel
-         Compute element contribution
+From initial Element_to_Node array {
+    create Node_to_Element array
+    create Element_to_Element array
+    create Element_to_Color array
+    create Color_to_Element array
+}
+For each color - in sequential
+    For all elements of current color - in parallel
+        Compute element contribution
  \end{verbatim}
  \caption{Coloring approach}
  \label{fig:colApp}
 \end{figure}
+
+
 The main issue of coloring approach is the data locality. Indeed, elements of a same color are distant from each other and are not stored contiguously in memory.
 
 \subsection{Divide \& Conquer}
@@ -140,51 +143,54 @@ The main issue of coloring approach is the data locality. Indeed, elements of a 
 The main idea of the D\&C approach for shared memory parallelization is to create task level parallelism while preserving a good data locality and minimizing synchronization cost.
 Instead of increasing MPI domain decomposition and communications as data size increases, we increase the number of Cilk threads. MPI processes remain in moderate numbers.
 In this way, we take benefit of the machine topology and most of communications are replaced by data sharing.
-On a small number of cores, results of D\&C implementation are expected to be equivalent to pure MPI.
-On a larger number of cores, the D\&C approach is expected to continue scaling, while pure MPI should loose in performance.
+On a small number of cores, results of D\&C parallelization are expected to be equivalent to pure MPI, but on a larger number of cores, we expecte to continue scaling while pure MPI should loose in performance.
+
+This approach is decomposed in two parts described in following subsections.
+First part is a recursive decomposition of each MPI domain and second part is the recursive execution of the assembly step using Cilk.
 
 \subsubsection{Recursive Bisection}
 D\&C is based on a topological recursive bisection of the mesh.
 As illustrated in figure~\ref{fig:DCapp}, the left and right sub-domains created by these bisections are not sharing any element and thus, can be executed in parallel.
 However, separator elements in the middle have nodes in both sides and must be treated after left and right sub-domains.
 Therefore it is important to use a good partitioner to build equal sub-domains while minimizing the interface. In our case, we use the METIS graph partitioner~\cite{Metis}.
-\begin{figure}[htp]
- \centering
- \includegraphics[scale=0.2]{DC_approach.png}
- \includegraphics[scale=0.2]{Data_permutations.png}
- \caption{D\&C approach}
- \label{fig:DCapp}
-\end{figure}
 
 In order to increase the data locality, we also permute node and element arrays.
 Indeed, nodes and elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve locality between tasks.
-
-This approach is applied recursively to all sub-domains, offering a large amount of parallelism.
-As illustrated in figure~\ref{fig:DCexe}, this results in a partition tree where each leaf is associated to an independent Cilk task.
+Since these permutations are applied in all MPI domains, we renumber nodes on the interface so that exchanged data stay coherent.
 \begin{figure}[htp]
  \centering
- \includegraphics[scale=0.2]{DC_rec.png}
- \includegraphics[scale=0.2]{DC_tree.png}
- \caption{D\&C recursive execution}
- \label{fig:DCexe}
+ \includegraphics[scale=0.17]{DC_approach.png}
+ \includegraphics[scale=0.21]{Data_permutations.png}
+ \caption{D\&C approach}
+ \label{fig:DCapp}
 \end{figure}
+
+This approach is then applied recursively to all sub-domains, offering a large amount of parallelism.
+As illustrated in figure~\ref{fig:DCexe}, this results in a partitioning tree where each leaf is associated to an independent Cilk task and executes the assembly on its sub-domain.
 
 Otherwise, since the partitionment is topological, cuts are done on edges rather than geometrical coordinates.
 This allows to compute sub-domains only once for a given mesh, despite of its deformations.
 On next runs, the application needs only to apply the permutations before executing the recursive assembly.
+\begin{figure}[htp]
+ \centering
+ \includegraphics[scale=0.25]{DC_recursion.png}
+ \caption{D\&C recursive execution}
+ \label{fig:DCexe}
+\end{figure}
 
 \subsubsection{Cilk Implementation}
-Cilk is a task based runtime developed by Intel. It allows to create parallel tasks with the \emph{spawn} keyword and to synchronize them with the \emph{sync} keyword.
-All these tasks can be executed independently by threads. These threads, called \emph{workers}, have a queue of tasks to execute.
-In order to improve the load balancing, Cilk runtime uses a work-stealing scheduler. Once a worker completes its queue, it can steal additional tasks from slower workers.
+Cilk~\cite{cilk5} is a task based runtime originaly developed by M. Frigo at MIT and now supported by Intel.
+It allows to \emph{spawn} and \emph{sync}hronize many parallel tasks.
+All these tasks are listed in queues and executed by \emph{worker} threads.
+In order to improve the load balancing, Cilk runtime uses a work-stealing scheduler. Once a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
 
 Starting from the tree shown in figure \ref{fig:DCexe}, the Cilk implementation is then straightforward.
 Execution runs through the tree starting from the root and spawning a new Cilk task at each node separation.
 This creates at each step of recursion parallelism between left and right parts.
 Then, when recursion reaches a leaf, the code is simply running the sequential assembling on its sub-domain.
 After left and right sub-domains are done, the corresponding Cilk tasks synchronize and one of them continue on the separator computation.
-In order to have finer permutations without increase the number of Cilk tasks, it is also possible to stop the recursion earlier.
+In order to have finer permutations without multiply Cilk tasks, it is possible to stop the recursion earlier.
 In this way, tasks no longer corresponds to leaves of the tree, but to nodes.
 Thus, they execute sequentially and in one block the left, right and corresponding separator partitions which are stored contiguously in memory.
 
@@ -192,10 +198,17 @@ In some cases, when all elements or nodes are access in order inside a loop, the
 Indeed Cilk provides, as well as OpenMP, an easy way to parallelize loops using the \emph{cilk\_for} keyword.
 By simply substituting the original \emph{for} by this keyword, iterations of the loop are split in several parallel tasks.
 On the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
-
-\subsubsection{To do}
-explain problematic of sync, conherency, vecto (future work hybrid d\&c + coloring) etc.\\
-explain compatibility with mpi\\
+\begin{verbatim}
+foo (sub-domain) {
+    if Node is not a leaf
+        spawn foo (sub-domain.left)
+        foo (sub-domain.right)
+        synchronize
+        foo (sub-domain.sep)
+    else
+        sequential assembly (sub-domain)
+}
+\end{verbatim}
 
 \section{Related Works}
 Many choices are available to complete FEM assembly in parallel.
@@ -343,6 +356,8 @@ Further investigation are needed to evaluate why the pure MPI version does not s
 Matrix assembly is the first step of many FEM applications such as seismic simulation, metal forming or crash test simulations. Depending on the application, this step can cover more than 80\% of the computation time. In the Dassault DEFMESH, our current implement ion is already faster than the original pure MPI version and overpass in performance and scalability the state-of-the-art  coloring approach. Even without exploiting the thread level parallelism, the D\&C methodology improve significantly the locality and thus the scalability and exeution time. The pure MPI version with D\&C has a perfect strong scaling on our benchmark architecture.
 
 As a future work,  we will finishing the parallelization of the separator in the matrix assembly step and experiment on larger core count. We strongly believe than our approach will provide very good performance on new many cores such as Xeon Phi. Extension will focus on D\&C friendly data structure definition and using D\&C on other part of the application such as the SpMV product or the iterative solver. 
+
+vecto (future work hybrid d\&c + coloring)\\
 
 \bibliographystyle{unsrt}
 \bibliography{dc_bib}
