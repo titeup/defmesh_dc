@@ -295,7 +295,7 @@ The D\&C version, as described above uses a recursive partitioning of each block
 a Cilk task parallelism of the assembly step.
 We also compare our results to the coloring implementation of the assembly, using OpenMP parallelism.
 
-For each of these versions, we consider the two variants of DEFMESH: the Laplacian one and the elasticity one.
+For each of these versions, we consider the Laplacian and elasticity variants of DEFMESH.
 For both of them, the application runs in 50 steps of resolution and measures correspond to the average time of one iteration.
 In all cases we measure the assembly step, where the D\&C approach has been applied.
 We also measure the solver to estimate the impact of the data permutations on the rest of the code.
@@ -308,7 +308,7 @@ $$Efficiency_{p-cores} = \frac{Time_{sequential}}{p*Time_{p-core}}$$
 For each graphics, we use 1, 4, 8 and 12 MPI tasks and from 1 to 12 threads while the combination of MPI processes per threads is lower or equal to 12.
 This corresponds to the number of cores available. In all cases, the number of Cilk threads used in the assembly is equal to the number of OpenMP threads used in the solver.
 We also varied the number of METIS partitions and Cilk tasks in a large scope of values but we have not observed significant changes in the results.
-Final values are 512 partitions and 128 Cilk tasks. This correspond to approximately 10 tasks per core, which is recommended in Cilk documentations.
+Final values are 512 partitions and 128 Cilk tasks. This corresponds to approximately 10 tasks per core, which is recommended in Cilk documentations.
 
 All experiments have been done with default policies. The OpenMP affinity is set to scatter and Cilk threads are not pinned.
 These experiments runs on an UVSQ server composed of twelve cores distributed in two sockets of 6-cores Intel® Xeon® X5650 clocked at 2.67 GHz.
