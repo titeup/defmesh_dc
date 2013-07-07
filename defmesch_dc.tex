@@ -33,7 +33,8 @@ Current algorithms and runtimes struggle to scale to a large number of cores and
 The pure MPI codes are wasting IO, memory and communications. HPC users have to explore new paradigms to make an efficient usage of the new resources at their disposal such as hybrid MPI+threads.
 In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization on shared memory of an unstructured mesh assembly to sparse matrix.
 Our target application is an industrial CFD application from Dassault Aviation computing mesh deformation for structure optimization.
-The implementation is based on the versatile Cilk runtime and standard MPI. The original Fortran code has been modified so that the elision of our modification is equivalent to the original pure MPI application.
+The implementation is based on the versatile Cilk runtime and standard MPI.
+The original Fortran code has been modified so that the elision of our modification is equivalent to the original pure MPI application.
 Preliminary results on the matrix assembly of the application are encouraging and show good locality and scalability characteristics.
 \end{abstract}
 
@@ -63,7 +64,7 @@ This step consists in building from the mesh the matrix describing the linear sy
 The values in the sparse matrix result from a reduction operation of some mesh elements.
 The irregularity of the structure and the sequentialization of the reduction are challenging to achieve an efficient parallelization.
 For multicores, except the state of the art coloring approaches, there is very few recent works published on parallelizing matrix assembly.
-In the manycore context, new algorithms are design for GPUs~\cite{Stanford,CPUGPUasm}, but can not be directly applied to shared multicores.
+In the manycore context, new algorithms are design for GPUs~\cite{cecka2011assembly,CPUGPUasm}, but can not be directly applied to shared multicores.
 
 We apply our D\&C strategy for the parallelization of the matrix assembly on an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure.
 We compare our results to the original pure MPI implementation and the coloring approach for shared memory parallelization.
@@ -128,7 +129,9 @@ For each color - in sequential
 \end{figure}
 
 Although coloring is an efficient approach for vectorial machines, it is not well adapted for actual parallel architectures.
-When sorting the elements by color, we improve the spatial locality and allow the vectorization. However there is only one update per edges per color. Each color run over all the edges before going to the next one and the cache and thus there will be probably no locality between colors. This causes important cache misses which may impact the performance.
+When sorting the elements by color, we improve the spatial locality and allow the vectorization. However there is only one update per edge per color.
+Each color runs over all the edges before going to the next one. Thus there will be probably no locality between colors.
+This causes important cache misses which may impact the performances.
 
 \subsection{Divide \& Conquer}
 %D\&C, approach on  unstructured meshes
@@ -218,21 +221,23 @@ foo (sub-domain) {
 Many choices are available to complete FEM assembly in parallel.
 All methods have their advantages and their limitations, depending for instance on the target architecture or the mesh size.
 
-Several studies \cite{Stanford,CPUGPUasm} investigates into different ways to compute FEM assembly on CPUs and GPUs.
-One method consists in assembling by non-zero value of the system of equation. Several variants of this method exist.
-A first one is to store contributions from mesh elements to global or local memory in parallel, and then reduce still in parallel these contributions to compute non-zero values.
-By arranging data layout, this method can offer good performances. However, it can suffers of load imbalancing since requirement for non-zero values are heterogeneous.
-Moreover, it can be very memory consuming and thus limited to small test cases.
-An other variant consists to use one thread for the whole assembly step of one non-zero value at a time, but this approach leads to redundant computations.
+Several studies~\cite{cecka2011assembly,CPUGPUasm} investigates different ways to compute FEM assembly on CPUs and GPUs.
+One method consists in creating parallelism between all the non-zero entries of the system of equations.
+This method has a very fine grain parallelism and thus, applies only to GPUs. Several variants exist.
+A first one is to store contributions from all mesh elements to global or local memory in parallel, and then reduce still in parallel these contributions to compute the non-zero values.
+By arranging the data layout, this method can offer good performances on GPUs.
+However, it can suffer of load imbalancing since the number of element contributors for computing non-zero values is heterogeneous.
+Moreover, it is very memory consuming and thus limited to small test cases.
+Another variant consists in using one thread for the whole assembly step of one non-zero value at a time, but this approach leads to redundant computations of element contributions.
 
-An other method consists in assembling by mesh element \cite{CUDAfe,CPUfe1,CPUfe2}. One thread is responsible for the whole assembly step of one element at a time.
-In order to launch several threads in parallel on independent elements, a coloring approach is often used.
-In this way, each thread performs the same amount of computation, but suffers of poor performances because of a bad data locality as explained is section \ref{sec:col}.
+Another method consists in assembling by mesh element. One thread is responsible for the whole assembly step of one element at a time. It can be applied to both GPUs and CPUs.
+A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in parallel on independent elements.
+In this way, each thread has a good load balancing per color. The load balancing between colors has no influence since they are sequentialized.
+However, it can suffer from poor performances because of a bad data locality as explained is section \ref{sec:col}.
 
 An assembly approach for Recursive Sparse Blocks matrices have also been experimented \cite{RSBasm}, but seems to be highly memory-bandwidth bound.
 
 \subsection{To do}
-Atomics\\
 Task Based parallelization SpMV, dongara and co \cite{MPI_task}\\
 
 \section{Experiments}
@@ -335,16 +340,14 @@ These results are encouraging and we can expect even better results when the sol
 \section{Conclusion and Futur Work}
 Matrix assembly is the first step of many FEM applications such as seismic simulation, metal forming or crash test simulations.
 Depending on the application, this step can cover more than 80\% of the computation time.
-In the Dassault DEFMESH, our current implement ion is already faster than the original pure MPI version and overpass in performance and scalability the state-of-the-art coloring approach.
-Even without exploiting the thread level parallelism, the D\&C methodology improve significantly the locality and thus the scalability and exeution time.
+In the Dassault Aviation DEFMESH application, our current implementation is already faster than the original pure MPI version and overpass in performance and scalability the state-of-the-art coloring approach.
+Even without exploiting the thread level parallelism, the D\&C methodology improves significantly the locality and thus the scalability and exeution time.
 The pure MPI version with D\&C has a perfect strong scaling on our benchmark architecture.
 
-As a future work, we will finishing the parallelization of the separator in the matrix assembly step and experiment on larger core count.
-We strongly believe than our approach will provide very good performance on new many cores such as Xeon Phi.
-Extension will focus on D\&C friendly data structure definition and using D\&C on other part of the application such as the SpMV product or the iterative solver. 
-\\\\
-vecto (future work hybrid d\&c + coloring)
-
+As a future work, we plan to finish the parallelization of the separator in the matrix assembly step and experiment on larger core count.
+We strongly believe than our approach will provide very good performances on new many cores such as Xeon Phi.
+Extension will focus on D\&C friendly data structure definition and using D\&C on other parts of the application such as the SpMV product or the iterative solver. 
+We are also considering an hybrid approach using coloring inside each D\&C sub-domains in order to enable vectorization.
 \bibliographystyle{unsrt}
 \bibliography{dc_bib}
 
