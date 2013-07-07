@@ -30,7 +30,8 @@ and
 
 \begin{abstract}
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machines.
-The pure MPI codes are wasting IO, memory and communications. HPC users have to explore new paradigms to make an efficient usage of the new resources at their disposal such as hybrid MPI+threads.
+The pure MPI codes are wasting IO, memory and communications. HPC users have to explore new paradigms to make an efficient usage of the new resources at their disposal
+such as hybrid MPI+threads.
 In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization on shared memory of an unstructured mesh assembly to sparse matrix.
 Our target application is an industrial CFD application from Dassault Aviation computing mesh deformation for structure optimization.
 The implementation is based on the versatile Cilk runtime and standard MPI.
@@ -52,12 +53,15 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, Matrix Assembly, FEM
 %Assembling on multicore, not on GPU (most of papers are for GPUs)\\\\
 
 Current algorithms and runtimes struggle to scale on a large number of cores and show a poor parallel efficiency on current HPC machine. 
-The major effects of the core count increase are a lower memory per core, higher requirement for concurrency (TLP, ILP, vector), higher coherency traffic and higher cost for coherency protocol.
+The major effects of the core count increase are a lower memory per core, higher requirement for concurrency (TLP, ILP, vector), higher coherency traffic and higher cost
+for coherency protocol.
 It results a severe challenge for performance scalability. The many-core accelerators such as the Xeon Phi exacerbate even more these issues.
 HPC users have to explore new paradigms to make an efficient usage of the new resources. 
 
-In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine and enhance the data and synchronization locality.
-In this paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task-based runtime, Cilk~\cite{cilk5}. 
+In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine
+and enhance the data and synchronization locality.
+In this paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task-based runtime,
+Cilk~\cite{cilk5}. 
 
 We demonstrate the potential of the D\&C approach on the matrix assembly step from Finite Element Methods, FEM.
 This step consists in building from the mesh the matrix describing the linear system to solve.
@@ -66,7 +70,8 @@ The irregularity of the structure and the sequentialization of the reduction are
 For multicores, except the state of the art coloring approaches, there is very few recent works published on parallelizing matrix assembly.
 In the manycore context, new algorithms are design for GPUs~\cite{cecka2011assembly,CPUGPUasm}, but can not be directly applied to shared multicores.
 
-We apply our D\&C strategy for the parallelization of the matrix assembly on an industrial CFD code from Dassault Aviation computing the effect of mesh deformation to optimize the plane structure.
+We apply our D\&C strategy for the parallelization of the matrix assembly on an industrial CFD code from Dassault Aviation computing the effect of mesh deformation
+to optimize the plane structure.
 We compare our results to the original pure MPI implementation and the coloring approach for shared memory parallelization.
 \\\\
 The paper outline is the following:
@@ -144,9 +149,11 @@ This causes important cache misses which may impact the performances.
 %Each leaves is responsible of its own data and there is a very minimal amount of sharing, avoiding costly locks and coherency protocols. 
 
 The main idea of the D\&C approach for shared memory parallelization is to create task level parallelism while preserving a good data locality and minimizing synchronization cost.
-Instead of increasing MPI domain decomposition and communications with the data size increases, we increase the number of Cilk tasks and threads. MPI processes remain in moderate numbers.
+Instead of increasing MPI domain decomposition and communications with the data size increases, we increase the number of Cilk tasks and threads. MPI processes remain
+in moderate numbers.
 In this way, we take benefit of the machine topology and most of communications are replaced by data sharing.
-On a small number of cores, results of D\&C parallelization are expected to be equivalent to pure MPI, but on a larger number of cores, we expecte to continue scaling while pure MPI should loose in performance.
+On a small number of cores, results of D\&C parallelization are expected to be equivalent to pure MPI, but on a larger number of cores, we expecte to continue scaling
+while pure MPI should loose in performance.
 
 This approach is decomposed in two parts described in following subsections.
 First part is a recursive decomposition of each MPI domain and second part is the recursive execution of the assembly step using Cilk.
@@ -160,7 +167,8 @@ Therefore it is important to use a good partitioner to build equal sub-domains w
 
 In order to increase the data locality, we also permute node and element arrays.
 Indeed, nodes and elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
-Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously to improve locality between tasks.
+Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously
+to improve locality between tasks.
 These permutations are applied in all MPI domains, therefore we renumber the nodes on the interface so that exchanged data stay coherent.
 \begin{figure}[htp]
  \centering
@@ -189,7 +197,8 @@ On next runs, the application needs only to apply the permutations before execut
 Cilk~\cite{cilk5} is a task based runtime originaly developed by M. Frigo at MIT and now supported by Intel.
 It allows to \emph{spawn} and \emph{sync}hronize many parallel tasks.
 All these tasks are listed in queues and executed by \emph{worker} threads.
-In order to improve the load balancing, Cilk runtime uses a work-stealing scheduler. Once a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
+In order to improve the load balancing, Cilk runtime uses a work-stealing scheduler. Once a \emph{worker} completes its queue, it can steal additional tasks from
+slower \emph{workers}.
 
 Starting from the tree shown in figure \ref{fig:DCrec}, the Cilk implementation is then straightforward.
 While execution is not arrived to a leaf, left and right sub-domains of each node are split in two tasks and executed in parallel.
@@ -224,27 +233,32 @@ All methods have their advantages and their limitations, depending for instance 
 Several studies~\cite{cecka2011assembly,CPUGPUasm} investigates different ways to compute FEM assembly on CPUs and GPUs.
 One method consists in creating parallelism between all the non-zero entries of the system of equations.
 This method has a very fine grain parallelism and thus, applies only to GPUs. Several variants exist.
-A first one is to store contributions from all mesh elements to global or local memory in parallel, and then reduce still in parallel these contributions to compute the non-zero values.
+A first one is to store contributions from all mesh elements to global or local memory in parallel, and then reduce still in parallel these contributions to compute
+the non-zero values.
 By arranging the data layout, this method can offer good performances on GPUs.
 However, it can suffer of load imbalancing since the number of element contributors for computing non-zero values is heterogeneous.
 Moreover, it is very memory consuming and thus limited to small test cases.
-Another variant consists in using one thread for the whole assembly step of one non-zero value at a time, but this approach leads to redundant computations of element contributions.
+Another variant consists in using one thread for the whole assembly step of one non-zero value at a time, but this approach leads to redundant computations of element
+contributions.
 
 Another method consists in assembling by mesh element. One thread is responsible for the whole assembly step of one element at a time. It can be applied to both GPUs and CPUs.
 A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in parallel on independent elements.
 In this way, each thread has a good load balancing per color. The load balancing between colors has no influence since they are sequentialized.
-However, it can suffer from poor performances because of a bad data locality as explained is section \ref{sec:col}.
+However, it can suffer from poor performances because of a bad data locality as explained is section~\ref{sec:col}.
 
-An assembly approach for Recursive Sparse Blocks matrices have also been experimented \cite{RSBasm}, but seems to be highly memory-bandwidth bound.
+An assembly approach for Recursive Sparse Blocks (RSB) matrix on CPUs has also been experimented~\cite{RSBasm}.
+Although this format can offer good results in solver algorithms~\cite{RSBsolver}, assembly on RSB matrix seems to be highly memory-bandwidth bound~\cite{RSBasm}.
 
-\subsection{To do}
-Task Based parallelization SpMV, dongara and co \cite{MPI_task}\\
+In 2008, Dongarra et al. experiments important benefits on CPUs by implementing an asynchronous tasks base parallelism approach on well-known factorization algorithms
+compare to traditional fork-join approach~\cite{Dongarra}.
+A recent investigation on hybrid programmation integrating task base parallelism in MPI processes have been made~\cite{MPIhybid}.
+The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to pure MPI.
 
 \section{Experiments}
 To validate our approach, we apply the D\&C algorithm using Cilk and MPI on a the assembly step of an application from Dassault Aviation called DEFMESH.
 We compare our results to the original pure MPI version of the assembly step and also to a MPI + OpenMP version using the coloring approach.
 
-\subsection{TO DO QUANG - Dassault Aviation DEFMESH Application}
+\subsection{Dassault Aviation DEFMESH Application}
 The DEFMESH application is a Computational Fluid Dynamics (CFD) code based on a Finite Element Method (FEM).
 It is used to apply deformations on an initial mesh in order to optimize its fluid flows.
 It is fully parallelized with the MPI protocol and recently with OpenMP in few parts of the solver.
@@ -255,7 +269,7 @@ First one is the assembly step where mesh data are gathered into a CSR structure
 Second step is the solver step which works on this CSR structure and computes optimal displacements.
 Final step is the update of mesh coordinates using previously computed deformations.
 
-Two versions of the kernel exist, a Laplacian version and an elastic version. Elastic version has a more complex assembly step and different boundary conditions for the solver (?).
+Two versions of the kernel exist, a Laplacian version and an elastic version. Elastic version has a more complex assembly step and different boundary conditions for the solver.
 While a simple scalar is computed for each edge of the mesh in the Laplacian version, a 3 by 3 matrix based on a more complex equation is computed in the elastic version.
 Moreover, both versions can be whether linear or non linear.
 The linear versions compute displacements in one step of deformation using the conjugate gradient methods as a direct method.
@@ -274,9 +288,11 @@ nice picture of mesh deformation comparing variants\\
 Experiments are done on the Dassault Aviation EIB test case. EIB is an unstructured mesh composed of 6 346 108 elements and 1 079 758 nodes.
 It represents the displacement of a fuel tank along a plane fuselage.
 
-In the following experiments, we compare two versions of the DEFMESH application: the original one from Dassault Aviation called “Ref” and the new Divide \& Conquer version called “D\&C”.
+In the following experiments, we compare two versions of the DEFMESH application: the original one from Dassault Aviation called “Ref” and the new Divide \& Conquer
+version called “D\&C”.
 The original version uses MPI between the different blocks of the mesh and OpenMP in some loops of the solver.
-The D\&C version, as described above uses a recursive partitioning of each block of the mesh. It exploits, in addition to MPI and OpenMP, a Cilk task parallelism of the assembly step.
+The D\&C version, as described above uses a recursive partitioning of each block of the mesh. It exploits, in addition to MPI and OpenMP,
+a Cilk task parallelism of the assembly step.
 We also compare our results to the coloring implementation of the assembly, using OpenMP parallelism.
 
 For each of these versions, we consider the two variants of DEFMESH: the Laplacian one and the elasticity one.
@@ -300,7 +316,8 @@ Concerning memory hierarchy, each core has its own L1 and L2 caches of resp. 32K
 
 \subsection{Results}
 \subsection{Assembly}
-As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low amount of work the D\&C approach is slower than pure MPI, especially when we increase the number of cores.
+As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low amount of work the D\&C approach is slower than pure MPI, especially when we increase
+the number of cores.
 This is probably due to the remaining sequential part of the D\&C code.
 Indeed, separator elements are not yet parallelized and can represent an important proportion of the computation, especially for the one at the beginning of the recursion.
 Moreover according to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases too. This is confirmed on figure~\ref{fig:asmCurvesC}.
@@ -309,7 +326,8 @@ In the elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{
 Indeed, the amount of work of the assembly step is bigger than in the Laplacian variant.
 Thus, the sequential part, ie separators computing, is less significant and the scalability gets better.
 Moreover in the D\&C version, data continue to fit in L2 cache whereas pure MPI starts to slow down.
-Where the original version works on elements located anywhere in the MPI domains, the D\&C version works on elements packed contiguously in small sub-domains corresponding to the Cilk tasks.
+Where the original version works on elements located anywhere in the MPI domains, the D\&C version works on elements packed contiguously in small sub-domains corresponding
+to the Cilk tasks.
 With this approach, whatever the size of the data set, the tasks will always fit in cache if we increase the number of METIS partitions.
 
 All in all, these first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
