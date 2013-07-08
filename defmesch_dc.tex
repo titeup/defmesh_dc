@@ -298,7 +298,8 @@ We present the results both in terms of execution times and of parallel efficien
 In all the graphics, the X axis represents the number of cores used. It corresponds to the product of MPI processes by the number of threads.
 In graphics presenting execution times, the Y axis correspond to RDTSC cycles for the assembly step and to MPI\_Wtime seconds for the solver.
 Concerning efficiency, the Y axis represents the parallel efficiency given by the following formula:
-$$Efficiency_{p-cores} = \frac{Time_{sequential}}{p*Time_{p-core}}$$
+$E_{P} = \frac{T_{S}}{P*T_{P}}$. $E_{P}$ is the efficiency on $P$ processor, $T_{S}$ the sequential time, and $T_{P}$ the time on $P$ processors.
+
 For each graphics, we use 1, 4, 8 and 12 MPI tasks and from 1 to 12 threads while the combination of MPI processes per threads is lower or equal to 12.
 This corresponds to the number of cores available. In all cases, the number of Cilk threads used in the assembly is equal to the number of OpenMP threads used in the solver.
 We also varied the number of METIS partitions and Cilk tasks in a large scope of values but we have not observed significant changes in the results.
@@ -309,38 +310,41 @@ These experiments runs on an UVSQ server composed of twelve cores distributed in
 Concerning memory hierarchy, each core has its own L1 and L2 caches of resp. 32KB and 256KB and a shared L3 cache of 12MB. Main memory is split in two NUMA nodes of 16GB.
 
 \subsection{Results}
+
+The following sections presents our measurement for the elastic and laplacian version for the FEM assembly. 
+
+NOTE TO REVIEWER: The experiments on coloring are in progress and will be included in the final version of the paper
+
 \subsection{Assembly}
-As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low amount of work the D\&C approach is slower than pure MPI, especially when we increase
+As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low number of cores of work the D\&C approach is slower than pure MPI, especially when we increase
 the number of cores.
-This is probably due to the remaining sequential part of the D\&C code.
-Indeed, separator elements are not yet parallelized and can represent an important proportion of the computation, especially for the one at the beginning of the recursion.
-Moreover according to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases too. This is confirmed on figure~\ref{fig:asmCurvesC}.
+This is due to the remaining sequential part of the D\&C code.
+Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
+According to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases too. This is confirmed on figure~\ref{fig:asmCurvesC}.
 
 In the elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{fig:asmCurvesD}, the D\&C approach become equivalent to pure MPI.
-Indeed, the amount of work of the assembly step is bigger than in the Laplacian variant.
-Thus, the sequential part, ie separators computing, is less significant and the scalability gets better.
-Moreover in the D\&C version, data continue to fit in L2 cache whereas pure MPI starts to slow down.
-Where the original version works on elements located anywhere in the MPI domains, the D\&C version works on elements packed contiguously in small sub-domains corresponding
-to the Cilk tasks.
-With this approach, whatever the size of the data set, the tasks will always fit in cache if we increase the number of METIS partitions.
+Since the amount of work of the assembly step is bigger than in the laplacian variant, the proportion of the sequential computation, including the separators, is lower. In this case the scalability improves. Futhermore, contrary to the pure MPI version, the data always fits in L2 cache with the D\&C version.
 
-All in all, these first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
+Unlike the original version that makes irregular accesses to the cells of the matrix, the D\&C version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
+For any problem size, with D\&C, we can increase the number of partitions such that the tasks working-set will always fit in cache.
+
+To conclude, these first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
+
 \begin{figure}[htp]
  \centering
- \subfigure[Laplacian execution time]{\label{fig:asmCurvesA}\includegraphics[scale=0.19]{Laplacian_asm_time.png}}\hspace{1em}
- \subfigure[Elasticity execution time]{\label{fig:asmCurvesB}\includegraphics[scale=0.19]{Elasticity_asm_time.png}}\hspace{1em}
- \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[scale=0.19]{Laplacian_asm_efficiency.png}}
- \subfigure[Elasticity parallel efficiency]{\label{fig:asmCurvesD}\includegraphics[scale=0.19]{Elasticity_asm_efficiency.png}}
+ \subfigure[Laplacian execution time]{\label{fig:asmCurvesA}\includegraphics[width=0.49\textwidth]{Laplacian_asm_time.png}}
+  \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[width=0.49\textwidth]{Laplacian_asm_efficiency.png}}
+ \subfigure[Elasticity execution time]{\label{fig:asmCurvesB}\includegraphics[width=0.49\textwidth]{Elasticity_asm_time.png}}
+ %\hspace{1em}
+ \subfigure[Elasticity parallel efficiency]{\label{fig:asmCurvesD}\includegraphics[width=0.49\textwidth]{Elasticity_asm_efficiency.png}}
  \caption{Assembly measures}
  \label{fig:asmCurves}
 \end{figure}
 
 \subsubsection{Solver}
-Despite we did not modify the solver part, we observe a small benefit for the D\&C version compared to the reference version.
-This gain is due to a better data locality caused by the permutations as explained in section~\ref{sec:DCrec}.
-To confirm the locality hypothesis, we measured the L3 cache misses occurring during the solver. They are significantly lower with D\&C compared to the original version.
-We also tried to permute data randomly and observe a degradation of performances.
-These results are encouraging and we can expect even better results when the solver will be properly parallelized.
+Despite we did not modify the solver part, we observe approximately 6\% benefit of the D\&C version compared to the reference version.
+This gain is due to the better data locality enabled by the permutations explained in section~\ref{sec:DCrec}. To show the impact of locality, we randomly permute the data and observe a degradation of the performance. We then measure the L3 cache misses occurring in the solver for the original version and the D\&C permutted version. They are 23\% lower with D\&C.
+
 \begin{figure}[htp]
  \centering
  \subfigure[Laplacian]{\label{fig:solCurvesA}\includegraphics[scale=0.158]{Laplacian_solver_time.png}}
@@ -349,17 +353,15 @@ These results are encouraging and we can expect even better results when the sol
  \label{fig:solCurves}
 \end{figure}
 
-\section{Conclusion and Futur Work}
-Matrix assembly is the first step of many FEM applications such as seismic simulation, metal forming or crash test simulations.
-Depending on the application, this step can cover more than 80\% of the computation time.
-In the Dassault Aviation DEFMESH application, our current implementation is already faster than the original pure MPI version and overpass in performance and scalability the state-of-the-art coloring approach.
-Even without exploiting the thread level parallelism, the D\&C methodology improves significantly the locality and thus the scalability and exeution time.
-The pure MPI version with D\&C has a perfect strong scaling on our benchmark architecture.
+\section{Conclusion and Future Work}
+FEM assembly is the first step of many applications, such as seismic simulation, metal forming, or crash test simulations. Depending on the application, the FEM assembly can cover more than 80\% of the execution time.
+In the Dassault Aviation DEFMESH application, our current implementation is already faster than the pure MPI original version and overpasses in performance and scalability the state-of-the-art coloring approach.
 
-As a future work, we plan to finish the parallelization of the separator in the matrix assembly step and experiment on larger core count.
-We strongly believe than our approach will provide very good performances on new many cores such as Xeon Phi.
-Extension will focus on D\&C friendly data structure definition and using D\&C on other parts of the application such as the SpMV product or the iterative solver. 
-We are also considering an hybrid approach using coloring inside each D\&C sub-domains in order to enable vectorization.
+Even without exploiting the thread level parallelism, the D\&C approach  significantly improves the locality and the scalability and execution time. The pure MPI version with D\&C has a perfect strong scaling for our experimental setup.
+
+As a future work, we plan to parallelize the separator in the D\&C FEM assembly and experiment on a larger number of cores.
+We strongly believe that our approach will provide good performances on new manycores such as Xeon Phi. Extension will focus on D\&C friendly data structure definition and apply D\&C on other parts of the FEM application. 
+%We are also considering a hybrid approach using coloring inside each D\&C sub-domains in order to enable vectorization.
 \bibliographystyle{unsrt}
 \bibliography{dc_bib}
 
