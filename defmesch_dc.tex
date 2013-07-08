@@ -314,15 +314,15 @@ The following sections presents our measurement for the elastic and laplacian ve
 
 NOTE TO REVIEWER: The experiments on coloring are in progress and will be included in the final version of the paper
 
-\subsection{Assembly}
+\subsubsection{Assembly}
 As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low number of cores of work the D\&C approach is slower than pure MPI, especially when we increase
 the number of cores.
 This is due to the remaining sequential part of the D\&C code.
 Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
-According to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases too. This is confirmed on figure~\ref{fig:asmCurvesC}.
+According to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases. This is confirmed on figure~\ref{fig:asmCurvesC} showing the parallel efficiency.
 
-In the elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{fig:asmCurvesD}, the D\&C approach become equivalent to pure MPI.
-Since the amount of work of the assembly step is bigger than in the laplacian variant, the proportion of the sequential computation, including the separators, is lower. In this case the scalability improves. Futhermore, contrary to the pure MPI version, the data always fits in L2 cache with the D\&C version.
+In the elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{fig:asmCurvesD}, the D\&C approach becomes equivalent to the pure MPI.
+Since the amount of work of the assembly step is bigger than in the laplacian variant, the proportion of the sequential computation, including the separators, is lower. In this case the scalability improves. Furthermore, contrary to the pure MPI version, the data always fits in L2 cache with the D\&C version.
 
 Unlike the original version that makes irregular accesses to the cells of the matrix, the D\&C version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
 For any problem size, with D\&C, we can increase the number of partitions such that the tasks working-set will always fit in cache.
