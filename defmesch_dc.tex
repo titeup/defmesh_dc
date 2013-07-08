@@ -104,7 +104,8 @@ We consider two different approaches, a state-of-the-art coloring approach and o
 \begin{figure}[htp]
  \centering
  \includegraphics[scale=0.2]{2D_asm.png}
- \caption{2D assembling example}
+ \includegraphics[scale=0.12]{Matrix_asm.png}
+ \caption{2D FEM assembly example}
  \label{fig:2Dasm}
 \end{figure}
 
@@ -236,7 +237,7 @@ compute (sub-domain) {
 Many choices are available to complete FEM assembly in parallel.
 All methods have their advantages and their limitations, depending for instance on the target architecture or the mesh size.
 Recent studies~\cite{cecka2011assembly,CPUGPUasm} investigate different ways to compute FEM assembly on CPUs and GPUs.
-The method of "TODO with one?"~\cite{} consists in creating parallelism between all the non-zero entries of the system of equations.
+A first method presented in~\cite{cecka2011assembly} consists in creating parallelism between all the non-zero entries of the system of equations.
 This method has a very fine grain thread parallelism and thus can be applied only to GPUs.
 First, they store contributions from all elements in the global or local memory in parallel and then reduce in parallel these contributions to compute the non-zero values.
 By arranging the data layout, this method can provide good performance on GPUs.
@@ -244,7 +245,7 @@ However, this method can suffer from bad load balancing since the number of neig
 Moreover, the amount of local copies grows quickly and thus the approach is limited to relatively small test cases.
 Another variant consists in using one thread for the whole FEM assembly step of one non-zero value at a time, but this approach leads to redundant computations of element contributions.
 
-The method presented in~\cite{} consists in assembling by mesh element. One thread is responsible for the whole FEM assembly step of one element at a time.
+A second method~\cite{cecka2011assembly} consists in assembling by mesh element. One thread is responsible for the whole FEM assembly step of one element at a time.
 It can be applied to both GPUs and CPUs.
 A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in parallel on independent elements.
 This way each thread has a good load balancing per color. The load balancing between colors has no influence since they are sequentialized.
