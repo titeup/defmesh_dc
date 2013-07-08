@@ -96,7 +96,7 @@ The paper outline is the following:
 
 Finite element assembly is common in most of scientific applications using finite element methods.
 A simple FEM assembly illustration of a 2D regular mesh is presented in figure~\ref{fig:2Dasm}.
-The values of the edges are the reduction of neighbor element contribution. In figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$.
+The values of the edges are the reduction of neighbor element contribution. In figure~\ref{fig:2Dasm}, $(N_1,N_2) = E_1 + E_2$.
 In 3D, the number of neighbor elements can be arbitrary large.
 
 To create parallelism, we must build independent domains to compute in parallel and synchronize between them to handle shared edges.
@@ -286,9 +286,22 @@ First one is a small mesh of 152 086 elements and 27 499 nodes which represents 
 Second test case, called EIB, is composed of 6 346 108 elements and 1 079 758 nodes. It represents the displacement of fuel tank along an airplane fuselage.
 This EIB test case has been used for experiments and measures presented in next section.
 
-\subsection{Experimental Setup}
 We performed our experiments on the Dassault Aviation EIB test data set. EIB is an unstructured mesh composed of 6 346 108 elements and 1 079 758 nodes.
-It represents the displacement of a fuel tank along an airplane fuselage. This case is illustrated in the figure~\ref{TODO:add the figure from quang report}.
+It represents the displacement of a fuel tank along an airplane fuselage. This case is illustrated in the figure~\ref{reservoir}.
+
+\begin{figure}[htp]
+ \centering
+ \subfigure[]{\label{fig:EIB3D}\includegraphics[width=0.49\textwidth]{reservoir_3D.png}}
+  \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.49\textwidth]{reservoir_projection.png}}
+ \subfigure[]{\label{fig:EIB_high}\includegraphics[width=0.32\textwidth]{reservoir_haut.png}}
+ \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.32\textwidth]{reservoir_milieu.png}}
+ \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.32\textwidth]{reservoir_bas.png}}
+ \caption{EIB fuel tank position optimization test-case}
+ \label{fig:asmCurves}
+\end{figure}
+
+\subsection{Experimental Setup}
+
 
 In the following experiments, we compare two versions of the DEFMESH application: the original one from Dassault Aviation called $Ref$ and the new Divide \& Conquer
 version called $D\&C$.
