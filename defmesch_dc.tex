@@ -218,8 +218,9 @@ In this case, similarly to OpenMP, Cilk provides an easy way to parallelize loop
 By substituting the original \emph{for} with the \emph{cilk\_for} keyword, iterations of the loop are split recursively in several parallel tasks.
 For the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
 \begin{figure}[htp]
+\small
  \begin{verbatim}
-compute (sub-domain) {
+function compute (sub-domain) 
     if Node is not a leaf
         spawn compute (sub-domain.left)
         compute (sub-domain.right)
@@ -227,7 +228,7 @@ compute (sub-domain) {
         compute (sub-domain.sep)
     else
         FEM_assembly (sub-domain)
-}
+end        
  \end{verbatim}
  \caption{D\&C assembly pseudo-code}
  \label{fig:DCcode}
