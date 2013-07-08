@@ -3,7 +3,7 @@
 \usepackage{mathptmx}
 \usepackage{graphicx}
 \usepackage{subfigure}
-
+\usepackage{caption}
 %\usepackage{times}
 %\normalfont
 %\usepackage[T1]{fontenc}
@@ -114,23 +114,28 @@ Coloring avoids race conditions by assigning a different color to the elements s
 It was originally targeting vector machines because elements of a same color do not contribute to the same edges.
 Determining a minimal coloring is NP-complete, but creating an efficient coloring with a larger number of colors using heuristic is well-known in litterature~\cite{findsomeonetocite}.
 A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colApp}.
-\begin{figure}[htp]
- \includegraphics[scale=0.2]{Coloring_approach.png}
- \small
- \begin{verbatim}
-NodeToElem create_node_to_element (ElemToNode)
-ElemToElem create_element_to_element (NodeToElem)
-ElemToColor create_element_to_color (ElemToElem)
-ColorToElem create_color_to_element (ElemToColor)
+~\\~\\~\\
+{
+\begin{minipage}[tp]{0.34\textwidth}
+	%\centering
+	\includegraphics[scale=0.15]{Coloring_approach.png}
+\end{minipage}
+\begin{minipage}[tp]{0.55\textwidth}
+ 		\small
+ 		\begin{verbatim}
+			NodeToElem=node2element(ElemToNode)
+			ElemToElem=element2element(NodeToElem)
+			ElemToColor=element2color(ElemToElem)
+			ColorToElem=color2element(ElemToColor)
 
-For each color c
-    Parallel For all elements e in c
-        compute_element_contribution (c)
- \end{verbatim}
- \caption{Coloring approach}
- \label{fig:colApp}
-\end{figure}
-
+			For each color C in colors
+    				Parallel_For all elements E in C
+        					compute_element_contribution(c)
+ 		\end{verbatim}
+ \end{minipage}	
+ \captionof{figure}{\label{fig:colApp} The coloring approach}
+ }
+ ~\\
 Despite coloring is an efficient approach for vectorial machines, it is not well suited for current shered memory parallel architectures.
 Sorting the elements by color improves the spatial locality and enables vectorization.
 However, there is only one update per edge and per color. Furthermore each color covers the whole domain.
@@ -313,7 +318,7 @@ Concerning memory hierarchy, each core has its own L1 and L2 caches of resp. 32K
 
 The following sections presents our measurement for the elastic and laplacian version for the FEM assembly. 
 
-NOTE TO REVIEWER: The experiments on coloring are in progress and will be included in the final version of the paper
+NOTE TO THE REVIEWERS: The experiments on coloring are in progress and will be included in the final version of the paper.
 
 \subsubsection{Assembly}
 As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low number of cores of work the D\&C approach is slower than pure MPI, especially when we increase
