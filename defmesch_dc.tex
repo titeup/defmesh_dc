@@ -297,7 +297,8 @@ We present the results both in terms of execution times and of parallel efficien
 In all the graphics, the X axis represents the number of cores used. It corresponds to the product of MPI processes by the number of threads.
 In graphics presenting execution times, the Y axis correspond to RDTSC cycles for the assembly step and to MPI\_Wtime seconds for the solver.
 Concerning efficiency, the Y axis represents the parallel efficiency given by the following formula:
-$$Efficiency_{p-cores} = \frac{Time_{sequential}}{p*Time_{p-core}}$$
+$E_{P} = \frac{T_{S}}{P*T_{P}}$. $E_{P}$ is the efficiency on $P$ processor, $T_{S}$ the sequential time, and $T_{P}$ the time on $P$ processors.
+
 For each graphics, we use 1, 4, 8 and 12 MPI tasks and from 1 to 12 threads while the combination of MPI processes per threads is lower or equal to 12.
 This corresponds to the number of cores available. In all cases, the number of Cilk threads used in the assembly is equal to the number of OpenMP threads used in the solver.
 We also varied the number of METIS partitions and Cilk tasks in a large scope of values but we have not observed significant changes in the results.
@@ -314,11 +315,11 @@ The following sections presents our measurement for the elastic and laplacian ve
 NOTE TO REVIEWER: The experiments on coloring are in progress and will be included in the final version of the paper
 
 \subsection{Assembly}
-As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low amount of work the D\&C approach is slower than pure MPI, especially when we increase
+As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low number of cores of work the D\&C approach is slower than pure MPI, especially when we increase
 the number of cores.
-This is probably due to the remaining sequential part of the D\&C code.
-Indeed, separator elements are not yet parallelized and can represent an important proportion of the computation, especially for the one at the beginning of the recursion.
-Moreover according to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases too. This is confirmed on figure~\ref{fig:asmCurvesC}.
+This is due to the remaining sequential part of the D\&C code.
+Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
+According to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases too. This is confirmed on figure~\ref{fig:asmCurvesC}.
 
 In the elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{fig:asmCurvesD}, the D\&C approach become equivalent to pure MPI.
 Since the amount of work of the assembly step is bigger than in the laplacian variant, the proportion of the sequential computation, including the separators, is lower. In this case the scalability improves. Futhermore, contrary to the pure MPI version, the data always fits in L2 cache with the D\&C version.
@@ -331,10 +332,9 @@ To conclude, these first results are encouraging and we can reasonably expect to
 \begin{figure}[htp]
  \centering
  \subfigure[Laplacian execution time]{\label{fig:asmCurvesA}\includegraphics[width=0.49\textwidth]{Laplacian_asm_time.png}}
- %\hspace{1em}
+  \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[width=0.49\textwidth]{Laplacian_asm_efficiency.png}}
  \subfigure[Elasticity execution time]{\label{fig:asmCurvesB}\includegraphics[width=0.49\textwidth]{Elasticity_asm_time.png}}
  %\hspace{1em}
- \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[width=0.49\textwidth]{Laplacian_asm_efficiency.png}}
  \subfigure[Elasticity parallel efficiency]{\label{fig:asmCurvesD}\includegraphics[width=0.49\textwidth]{Elasticity_asm_efficiency.png}}
  \caption{Assembly measures}
  \label{fig:asmCurves}
