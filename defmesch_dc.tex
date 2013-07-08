@@ -114,7 +114,7 @@ We consider two different approaches, a state-of-the-art coloring approach and o
 \label{sec:col}
 Coloring avoids race conditions by assigning a different color to the elements sharing an edge.
 It was originally targeting vector machines because elements of a same color do not contribute to the same edges.
-Determining a minimal coloring is NP-complete, but creating an efficient coloring with a larger number of colors using heuristic is well-known in litterature~\cite{findsomeonetocite}.
+Determining a minimal coloring is NP-complete, but creating an efficient coloring with a larger number of colors using heuristic is well-known in litterature~\cite{CPUfe}.
 A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colApp}.
 ~\\~\\~\\
 {
@@ -253,9 +253,9 @@ A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in
 This way each thread has a good load balancing per color. The load balancing between colors has no influence since they are sequentialized.
 However, bad data locality can cause poor performance as explained is section~\ref{sec:col}.
 
+Divide and Conquer paradigm and recursion in general has been already explored for a long time for parallel algorithm~\cite{div}.
 M. Martone et al.~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
 Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, according to authors results, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm}.
-
 In 2008, Dongarra et al.~\cite{Dongarra} evaluated an asynchronous task based parallelism approach for well-known factorization algorithms and compared it to traditional fork-join approach.
 A recent investigation on hybrid programmation integrating task base parallelism in MPI processes have been made~\cite{MPIhybid}.
 The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to pure MPI.
