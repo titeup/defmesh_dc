@@ -21,8 +21,9 @@
 \thanks{Corresponding Author E-mail: Loic.thebault@prism.uvsq.fr}},
 \author[A]{\fnms{Eric} \snm{Petit}},
 \author[A]{\fnms{Marc} \snm{Tchiboukdjian}},
+\author[B]{\fnms{Quang} \snm{Dinh}},
 and
-\author[B]{\fnms{Quang} \snm{Dinh}}
+\author[A]{\fnms{William} \snm{Jalby}}
 
 \runningauthor{L. Th\'ebault et al.}
 \address[A]{PRISM - University of Versailles, France}
@@ -40,7 +41,7 @@ Preliminary results on the finite element assembly of the application are encour
 \end{abstract}
 
 \begin{keyword}
-Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, Matrix Assembly, FEM
+Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, FEM Assembly
 \end{keyword}
 \end{frontmatter}
 
@@ -73,7 +74,7 @@ In the manycore context, new algorithms are design for GPUs~\cite{cecka2011assem
 We apply our D\&C strategy to parallelize the finite element assembly of an industrial fluid dynamics code from Dassault Aviation.
 This code computes the effect of mesh deformation to optimize airplane structure.
 Our results outperform the original pure MPI implementation and the coloring method for shared memory parallelization and vectorization.
-\\\\
+
 The paper outline is the following:
 \begin{itemize}
 \item Section 2 presents the finite element assembly in applications using the coloring approach and our D\&C proposal using Cilk and MPI.
@@ -282,9 +283,7 @@ DEFMESH implements two options for the definition of the elasticity-like operato
 The Laplacian operator, which calls 3 times the CG algorithm at each linearized step. Each call computes the solution of a scalar system of linear equations.
 Secondly, the Elasticity operator, where the full 3D linear elasticity operator is implemented.
 It couples the 3 mesh coordinates, thus at each linearized step, the CG algorithm has to solve a 3 by 3 system of linear equations.
-The “Elasticity operator” permits mesh deformations of greater magnitude and smoother deformed meshes than the “Laplacian operator”.
-
-DEFMESH main kernel is decomposed in three steps.
+The “Elasticity operator” permits mesh deformations of greater magnitude and smoother deformed meshes than the “Laplacian operator”. DEFMESH main kernel is decomposed in three steps.
 First one is the FEM assembly, where mesh data are gathered into a CSR structure.
 Second step is the solver which works on this CSR structure and computes optimal displacements.
 Final step is the update of mesh coordinates using previously computed deformations.
@@ -377,9 +376,7 @@ Moreover, when measuring the L3 cache misses occurring in the solver for the ori
 \section{Conclusion and Future Work}
 FEM assembly is the first step of many applications, such as seismic simulation, metal forming, or crash test simulations.
 Depending on the application, the FEM assembly can cover more than 80\% of the execution time.
-In the Dassault Aviation DEFMESH application, our current implementation is already faster than the pure MPI original version and overpasses in performance and scalability the state-of-the-art coloring approach.
-
-Even without exploiting the thread level parallelism, the D\&C approach  significantly improves the locality, the scalability, and the execution time.
+In the Dassault Aviation DEFMESH application, our current implementation is already faster than the pure MPI original version and overpasses in performance and scalability the state-of-the-art coloring approach. Even without exploiting the thread level parallelism, the D\&C approach  significantly improves the locality, the scalability, and the execution time.
 The pure MPI version with D\&C has a perfect strong scaling for our experimental setup.
 
 As a future work, we plan to parallelize the separator in the D\&C FEM assembly and experiment on a larger number of cores.
