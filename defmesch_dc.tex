@@ -18,7 +18,7 @@
 %\subtitle{Subtitle}
 
 \author[A]{\fnms{Lo\"ic} \snm{Th\'ebault}%
-\thanks{Corresponding Author E-mail: }},
+\thanks{Corresponding Author E-mail: Loic.thebault@prism.uvsq.fr}},
 \author[A]{\fnms{Eric} \snm{Petit}},
 \author[A]{\fnms{Marc} \snm{Tchiboukdjian}},
 and
@@ -53,17 +53,17 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, Matrix Assembly, FEM
 %Assembling on multicore, not on GPU (most of papers are for GPUs)\\\\
 
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machine. 
-The major effects of the core count increase are a lower memory per core, higher requirement for concurrency (thread level parallelism, instruction level parallelism, vector instructions),
+The major effects of the core count increase are a lower memory per core, higher requirement for concurrency (Thread Level Parallelism, Instruction Level Parallelism, vector instructions),
 higher coherency traffic and higher cost for coherency protocol.
 It results in a severe challenge for performance scalability. The manycore accelerators such as the Xeon Phi exacerbate even more these issues.
 HPC users have to explore new paradigms to make an efficient usage of the new resources. 
 
 In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine
 and enhance the data and synchronization locality.
-In this paper, we propose and evaluate a new parallelization strategy for structured problem based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task based runtime,
+In this paper, we propose and evaluate a new parallelization strategy for unstructured problem based on the Divide and Conquer, D\&C, principle. Our implementation is based on a task based runtime,
 Cilk~\cite{cilk5}. 
 
-We demonstrate the potential of the D\&C approach on the finite element assembly step from finite element methods, FEM.
+We demonstrate the potential of the D\&C approach on the assembly step from Finite Element Methods, FEM.
 This step builds a matrix describing the linear system of equations from the mesh.
 The values in the sparse matrix are the result of a reduction operation of neighbor elements.
 The irregularity of the structure and the sequentialization of the reduction are challenging to achieve an efficient parallelization.
@@ -96,7 +96,7 @@ The paper outline is the following:
 
 Finite element assembly is common in most of scientific applications using finite element methods.
 A simple FEM assembly illustration of a 2D regular mesh is presented in figure~\ref{fig:2Dasm} with the associated sparse matrix.
-The values of the edges are the reduction of neighbor element contribution. In figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$.
+The values of the edges are the reduction of neighbor elements contribution. In figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$.
 The non-zero values of the matrix corresponds to the edges of the mesh. This matrix is sparse and symmetrical, thus we store only the lower triangular non-zero values.
 In 3D, the number of neighbor elements can be arbitrary large.
 
@@ -113,7 +113,7 @@ We consider two different approaches, a state-of-the-art coloring approach and o
 \subsection{Coloring}
 \label{sec:col}
 Coloring avoids race conditions by assigning a different color to the elements sharing an edge.
-It was originally targeting vector machines because elements of a same color do not contribute to the same edges.
+It was originally targeting vector machines. Indeed elements of a same color do not contribute to the same edges and thus can be executed in parallel.
 Determining a minimal coloring is NP-complete, but creating an efficient coloring with a larger number of colors using heuristic is well-known in litterature~\cite{CPUfe}.
 A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colApp}.
 ~\\~\\~\\
@@ -125,20 +125,20 @@ A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colA
 \begin{minipage}[tp]{0.55\textwidth}
  		\small
  		\begin{verbatim}
-			NodeToElem=node2element(ElemToNode)
-			ElemToElem=element2element(NodeToElem)
-			ElemToColor=element2color(ElemToElem)
-			ColorToElem=color2element(ElemToColor)
+			NodeToElem = node2element(ElemToNode)
+			ElemToElem = element2element(NodeToElem)
+			ElemToColor = element2color(ElemToElem)
+			ColorToElem = color2element(ElemToColor)
 
 			For each color C in colors
     				Parallel_For all elements E in C
-        					compute_element_contribution(c)
+        					compute_element_contribution(C)
  		\end{verbatim}
  \end{minipage}	
  \captionof{figure}{\label{fig:colApp} The coloring approach}
  }
  ~\\
-Despite coloring is an efficient approach for vectorial machines, it is not well suited for current shered memory parallel architectures.
+Despite coloring is an efficient approach for vector machines, it is not well suited for current shared memory parallel architectures.
 Sorting the elements by color improves the spatial locality and enables vectorization.
 However, there is only one update per edge and per color. Furthermore each color covers the whole domain.
 Thus for large domains, there will be no edge locality in cache between colors.
@@ -155,12 +155,12 @@ This way, we take the benefit of the machine topology and most of communication 
 
 The rational is to divide recursively the work in two or more independent tasks and synchronize these tasks locally. This recursive approach has many advantages.
 First the recursive sharing naturally exposes high concurrency. As long as the application is large enough, it is possible to produce a deeper recursive tree to get more concurrency and 
-therefore match the higher requirement of manycore systems. Furthermore, synchronizations are local: only nodes of a same parent in the recursive tree need to be synchronized.
-Finally, D\&C approach improves the data locality by reordering the data. 
+therefore match the higher requirement of manycore systems. Furthermore, synchronizations are local: only nodes of a same parent in the recursive tree need have to be synchronized.
+Finally, D\&C approach improves the data locality by reordering the data as shown in section~\ref{sec:DCrec} 
 
 On a small number of cores, the scalability of the D\&C parallelization is expected to be equivalent to the pure MPI.
 However, for a larger number of cores, D\&C should continue scaling while pure MPI should not.
-In any case the code will benefit from the higher locality and reuse of elements in the D\&C version and all the versions using the reordering should outperform the original code.
+In any case the code will benefit from the higher locality and reuse of elements in the D\&C version. Therefore all the versions using the reordering should outperform the original code.
 
 This approach consists of two parts described in following subsections.
 First part is the recursive decomposition of each MPI domain and second part is the recursive execution of the FEM assembly step using Cilk.
@@ -171,15 +171,15 @@ D\&C is based on a topological recursive bisection of the mesh.
 As illustrated in figure~\ref{fig:DCapp}, the left and right sub-domains created by these bisections do not share any element and thus, can be executed in parallel.
 However, the separator elements in the middle have nodes in both sides and must be processed after left and right sub-domains.
 
-The load-balancing between the sub-domains is important since it influences the depth of the recursive tree.
+The load balancing between the sub-domains is important since it influences the depth of the recursive tree.
 A balanced tree will minimize the maximum depth and thus the number of synchronization on the critical path.
 Therefore, it is important to use a good partitioner to build equal sub-domains. In this study, we use the METIS graph partitioner~\cite{Metis}.
 
 In order to increase the data locality, we permute node and element arrays.
-Indeed, nodes and elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
+As a result, nodes and elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighbor sub-domains and associated separator contiguously
 to improve locality between tasks.
-These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data is consistent.
+These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
 \begin{figure}[htp]
  \centering
  \includegraphics[scale=0.17]{DC_approach.png}
@@ -190,12 +190,12 @@ These permutations are applied to all MPI domains, therefore we renumber the nod
 
 The proposed approach is then applied recursively to all sub-domains, providing a large amount of parallelism.
 As illustrated in figure~\ref{fig:DCrec}, each leaf of the resulting tree is associated with an independent Cilk task which executes the FEM assembly process on its sub-domain.
-In order to optimize the locality with permutations without multiplying tasks, it is possible to stop the recursion before reaching the leaves.
-To do so, the tasks execute in one block the left, right and separator domains contiguously stored in memory.
+In order to optimize the locality with permutations while not multiplying tasks, it is possible to stop the recursion before reaching the leaves.
+%To do so, the tasks execute in one block the left, right and separator domains contiguously stored in memory.
 
 The partitionment is topological: cuts are done on edges rather than on geometrical coordinates.
-This allows to compute sub-domains only one time for a mesh, and it is independent from the rest of the computation. Therefore, this partition is precomputed and stored with the mesh.
-During the run, the application needs only to apply the precomputed permutations before executing the recursive FEM assembly.
+This allows to compute sub-domains only one time for a mesh and it is independent from the rest of the computation. Therefore, this partition is precomputed and stored with the mesh.
+During the run, the application needs only to apply the precomputed permutation before executing the recursive FEM assembly.
 \begin{figure}[htp]
  \centering
  \includegraphics[scale=0.25]{DC_recursion.png}
@@ -209,15 +209,6 @@ It allows users to \emph{spawn} and \emph{sync} many parallel tasks.
 All these tasks are organised in queues and executed by \emph{worker} threads.
 For load balancing, Cilk runtime uses a work-stealing scheduler. When a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
 
-Once the tree like the one shown in figure~\ref{fig:DCrec} is constructed, the Cilk implementation is straightforward.
-Until the recursion has not reached a leaf (domain size condition), left and right sub-domains of each node are split in two tasks and executed in parallel.
-These tasks have to complete before launching the separator computation. 
-When the recursion reaches the leaves, the original sequential FEM assembly routine is executed on their sub-domains, see figure~\ref{fig:DCcode}.
-
-When all elements are accessed in a regular loop, there is no need to use a recursive task tree.
-In this case, similarly to OpenMP, Cilk provides an easy way to parallelize loops using the \emph{cilk\_for} keyword.
-By substituting the original \emph{for} with the \emph{cilk\_for} keyword, iterations of the loop are split recursively in several parallel tasks.
-For the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
 \begin{figure}[htp]
 \small
  \begin{verbatim}
@@ -235,45 +226,56 @@ end
  \label{fig:DCcode}
 \end{figure}
 
+Once the recursive task tree as shown in figure~\ref{fig:DCrec} is constructed, the Cilk implementation is straightforward.
+Following the pseudo-code in figure~\ref{fig:DCcode} Until the recursion has not reached a leaf (domain size condition), left and right sub-domains of each node are split in two tasks and executed in parallel.
+These tasks have to complete before launching the separator computation. 
+When the recursion reaches the leaves, the original sequential FEM assembly routine is executed on their sub-domains.
+
+When all elements are accessed in a regular loop, there is no need to use a recursive task tree.
+In this case, similarly to OpenMP, Cilk provides an easy way to parallelize loops using the \emph{cilk\_for} keyword.
+By substituting the original \emph{for} with the \emph{cilk\_for} keyword, iterations of the loop are split recursively in several parallel tasks.
+For the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
+
+
 \section{Related Works}
 Many choices are available to complete FEM assembly in parallel.
 All methods have their advantages and their limitations, depending for instance on the target architecture or the mesh size.
 Recent studies~\cite{cecka2011assembly,CPUGPUasm} investigate different ways to compute FEM assembly on CPUs and GPUs.
 A first method presented in~\cite{cecka2011assembly} consists in creating parallelism between all the non-zero entries of the system of equations.
 This method has a very fine grain thread parallelism and thus can be applied only to GPUs.
-First, they store contributions from all elements in the global or local memory in parallel and then reduce in parallel these contributions to compute the non-zero values.
+First, they store contributions from all elements in the global or local memory in parallel and then reduce in parallel these contributions used to compute the non-zero values.
 By arranging the data layout, this method can provide good performance on GPUs.
-However, this method can suffer from bad load balancing since the number of neighbor elements to compute non-zero values can vary.
+However, this method can suffer from bad load balancing since the number of neighbor elements to compute non-zero values may vary.
 Moreover, the amount of local copies grows quickly and thus the approach is limited to relatively small test cases.
 Another variant consists in using one thread for the whole FEM assembly step of one non-zero value at a time, but this approach leads to redundant computations of element contributions.
 
 A second method~\cite{cecka2011assembly} consists in assembling by mesh element. One thread is responsible for the whole FEM assembly step of one element at a time.
 It can be applied to both GPUs and CPUs.
 A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in parallel on independent elements.
-This way each thread has a good load balancing per color. The load balancing between colors has no influence since they are sequentialized.
+This way, each thread has a good load balancing per color. The load balancing between colors has no influence since they are sequentialized.
 However, bad data locality can cause poor performance as explained is section~\ref{sec:col}.
 
 Divide and Conquer paradigm and recursion in general has been already explored for a long time for parallel algorithm~\cite{div}.
 M. Martone et al.~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
 Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, according to authors results, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm}.
 In 2008, Dongarra et al.~\cite{Dongarra} evaluated an asynchronous task based parallelism approach for well-known factorization algorithms and compared it to traditional fork-join approach.
-A recent investigation on hybrid programmation integrating task base parallelism in MPI processes have been made~\cite{MPIhybid}.
+A recent investigation on hybrid programmation integrating task based parallelism in MPI processes have been made~\cite{MPIhybid}.
 The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to pure MPI.
 
 \section{Experiments}
 To validate our approach, we apply the D\&C algorithm using Cilk and MPI to the FEM assembly step of an application from Dassault Aviation called DEFMESH.
-We compare our results to the pure MPI original version of the FEM assembly step and also to the MPI + OpenMP version using the coloring approach.
+We compare our results to the pure MPI original version of the FEM assembly step and to the MPI + OpenMP version using the coloring approach.
 
 \subsection{Dassault Aviation DEFMESH Application}
 The DEFMESH application is a computational fluid dynamics (CFD) code based on a finite element method (FEM).
-This volume mesh deformer, is an important numerical module in Dassault Aviation aerodynamic optimization environment.
+This volume mesh deformer is an important numerical module in Dassault Aviation aerodynamic optimization environment.
 It is also used in other simulations which may include surface variations of larger magnitude, such as in aero-elastic interactions or dynamics of moving bodies.
 
 DEFMESH implements a three-dimensional elasticity-like system of equations from given surface data.
 These equations are solved by two different alogorithms.
-First one is a linear algorithm used when the magnitude of the surface data is small, the equations can be linearized into a system of linear equations with a symmetric definite positive matrix.
-Second one is a non linear algorithm where surface data of large magnitude are cut in a succession of small increments.
-The original equations are solved as a non-linear succession of linearized sub-problems, consisting of systems of linear equations, each with a symmetric definite positive matrix.
+The first one is a linear algorithm used when the magnitude of the surface data is small: the equations can be linearized into a system of linear equations with a symmetric definite positive matrix.
+The second one is a non-linear algorithm where surface data of large magnitude are cut in a succession of small increments.
+The original equations are solved as a non-linear succession of linearized sub-problems, consisting of systems of linear equations, each described as a symmetric definite positive matrix.
 The systems of linear equations, with a symmetric definite positive matrix, are solved by a standard conjugate gradient (CG) algorithm.
 
 DEFMESH implements two options for the definition of the elasticity-like operator for its system of volume equations.
@@ -291,8 +293,8 @@ We performed our experiments on an unstructured mesh from Dassault Aviation, cal
 It is composed of 6 346 108 elements and 1 079 758 nodes and it represents the displacements of a fuel tank along an airplane fuselage.
 \begin{figure}[htp]
  \centering
- \subfigure[]{\label{fig:EIB3D}\includegraphics[width=0.49\textwidth]{reservoir_3D.png}}
- \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.49\textwidth]{reservoir_projection.png}}
+ \subfigure[]{\label{fig:EIB3D}\includegraphics[width=0.42\textwidth]{reservoir_3D.png}}
+ \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.42\textwidth]{reservoir_projection.png}}
  \subfigure[]{\label{fig:EIB_high}\includegraphics[width=0.32\textwidth]{reservoir_haut.png}}
  \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.32\textwidth]{reservoir_milieu.png}}
  \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.32\textwidth]{reservoir_bas.png}}
