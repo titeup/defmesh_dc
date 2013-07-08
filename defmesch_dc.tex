@@ -125,14 +125,14 @@ A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colA
 \begin{minipage}[tp]{0.55\textwidth}
  		\small
  		\begin{verbatim}
-			NodeToElem = node2element(ElemToNode)
-			ElemToElem = element2element(NodeToElem)
-			ElemToColor = element2color(ElemToElem)
-			ColorToElem = color2element(ElemToColor)
+			NodeToElem = node2element (ElemToNode)
+			ElemToElem = element2element (NodeToElem)
+			ElemToColor = element2color (ElemToElem)
+			ColorToElem = color2element (ElemToColor)
 
 			For each color C in colors
     				Parallel_For all elements E in C
-        					compute_element_contribution(C)
+        					compute_element_contribution (C)
  		\end{verbatim}
  \end{minipage}	
  \captionof{figure}{\label{fig:colApp} The coloring approach}
@@ -297,7 +297,7 @@ It is composed of 6 346 108 elements and 1 079 758 nodes and it represents the d
  \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.42\textwidth]{reservoir_projection.png}}
  \subfigure[]{\label{fig:EIB_high}\includegraphics[width=0.32\textwidth]{reservoir_haut.png}}
  \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.32\textwidth]{reservoir_milieu.png}}
- \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.32\textwidth]{reservoir_bas.png}}
+ \subfigure[]{\label{fig:EIB_bottom}\includegraphics[width=0.32\textwidth]{reservoir_bas.png}}
  \caption{EIB fuel tank position optimization test case}
  \label{fig:reservoir}
 \end{figure}
