@@ -280,15 +280,15 @@ DEFMESH implements two options for the definition of the elasticity-like operato
 The Laplacian operator, which calls 3 times the CG algorithm at each linearized step. Each call computes the solution of a scalar system of linear equations.
 Secondly, the Elasticity operator, where the full 3D linear elasticity operator is implemented.
 It couples the 3 mesh coordinates, thus at each linearized step, the CG algorithm has to solve a 3 by 3 system of linear equations.
-The “Elasticity operator” option permits mesh deformations of greater magnitude and smoother deformed meshes than the “Laplacian operator”.
+The “Elasticity operator” permits mesh deformations of greater magnitude and smoother deformed meshes than the “Laplacian operator”.
 
 DEFMESH main kernel is decomposed in three steps.
 First one is the FEM assembly, where mesh data are gathered into a CSR structure.
 Second step is the solver which works on this CSR structure and computes optimal displacements.
 Final step is the update of mesh coordinates using previously computed deformations.
 
-We performed our experiments on an unstructured meshes from Dassault Aviation, called EIB and illustrated in the figure~\ref{fig:reservoir}.
-It is composed of 6 346 108 elements and 1 079 758 nodes and it represents the displacement of fuel tank along an airplane fuselage.
+We performed our experiments on an unstructured mesh from Dassault Aviation, called EIB and illustrated in the figure~\ref{fig:reservoir}.
+It is composed of 6 346 108 elements and 1 079 758 nodes and it represents the displacements of a fuel tank along an airplane fuselage.
 \begin{figure}[htp]
  \centering
  \subfigure[]{\label{fig:EIB3D}\includegraphics[width=0.49\textwidth]{reservoir_3D.png}}
@@ -302,13 +302,13 @@ It is composed of 6 346 108 elements and 1 079 758 nodes and it represents the d
 
 \subsection{Experimental Setup}
 In the following experiments, we compare two versions of the DEFMESH application: the original one from Dassault Aviation called $Ref$ and the new Divide \& Conquer version called $D\&C$.
-The original version uses MPI between the different blocks of the mesh and OpenMP to parallelize the sparse matrix-vector loop.
-The D\&C version, as described above uses a recursive partitioning of each block of the mesh.
-In addition to MPI and OpenMP, this version also exploits a Cilk task parallelism of the FEM assembly.
+The original version uses MPI between the different blocks of the mesh and OpenMP to parallelize the sparse matrix-vector loop of the solver.
+The D\&C version uses the recursive partitioning of each block of the mesh.
+In addition to MPI and OpenMP, this version also exploits a Cilk task parallelism in the FEM assembly.
 We also compare our results to the coloring implementation of the FEM assembly, using OpenMP.
 
 For each of these versions, we consider the Laplacian and elasticity variants of DEFMESH.
-For both of them, the application runs in 50 steps of resolution and measures correspond to the average time of one iteration.
+For both of them, the application runs in 50 steps of resolution and the measures correspond to the average time of one iteration.
 In all cases we measure the FEM assembly step, where the D\&C approach has been applied.
 We also measure the solver to estimate the impact of the data permutations on the rest of the code.
 
@@ -316,27 +316,26 @@ We present the results both in terms of execution times and of parallel efficien
 In all the graphics, the \emph{x} axis represents the number of cores. It corresponds to the number of MPI processes multiplied by the number of threads.
 In figures presenting execution time, the \emph{y} axis corresponds to RDTSC cycles for the FEM assembly and to \texttt{MPI\_Wtime} for the solver.
 Concerning efficiency, the \emph{y} axis represents the parallel efficiency given by the following formula:
-$E_{P} = \frac{T_{S}}{P*T_{P}}$. $E_{P}$ is the efficiency on $P$ processor, $T_{S}$ the sequential time, and $T_{P}$ the time on $P$ processors.
+$E_{P} = \frac{T_{S}}{P*T_{P}}$, where $E_{P}$ is the efficiency on $P$ processor, $T_{S}$ the sequential time, and $T_{P}$ the time on $P$ processors.
 
-For each figures, we use 1, 4, 8 and 12 MPI tasks and from 1 to 12 threads, OpenMP or Cilk, while the multiplication of MPI processes per threads is lower or equal to 12.
+For each figure, we use 1, 4, 8 and 12 MPI processes and 1 to 12 threads, OpenMP or Cilk, while the multiplication of MPI processes per thread is lower or equal to 12.
 This corresponds to the number of cores available. In all cases, the number of Cilk threads used in the FEM assembly is equal to the number of OpenMP threads used in the solver.
 We also varied the number of METIS partitions and the number of Cilk tasks, but we have not observed significant changes in the results.
-According to the Cilk documentations, 10 tasks per core is optimal. Therefore we use 128 Cilk tasks.
-We cut MPI domains in 512 partitions which is enough to fit in cache.
+According to the Cilk documentations, 10 tasks per core is appropriate. Therefore we use 128 Cilk tasks, which is also enough to fit in cache.
+We cut MPI domains in 512 partitions to improve locality.
 
 The OpenMP affinity is set to scatter and Cilk threads are not pinned.
 We perform these experiments on twelve cores grouped in two sockets of 6 cores Intel® Xeon® X5650 clocked at 2.67 GHz.
 Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
 \subsection{Results}
-The following sections presents our measurement for the elastic and laplacian version for the FEM assembly. 
+The following sections present our measurement for the elastic and Laplacian version for the FEM assembly. 
 
 NOTE TO THE REVIEWERS: The experiments on coloring are in progress and will be included in the final version of the paper.
 
 \subsubsection{Assembly}
-As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, with a low number of cores of work the D\&C approach is slower than pure MPI, especially when we increase
-the number of cores.
-This is due to the remaining sequential part of the D\&C code.
+As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the D\&C approach is slower than pure MPI, especially when we increase the number of cores.
+This is due to the remaining sequential part of the D\&C code and the low intensity work in the Laplacian version.
 Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
 According to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases. This is confirmed on figure~\ref{fig:asmCurvesC} showing the parallel efficiency.
 
@@ -359,8 +358,11 @@ To conclude, these first results are encouraging and we can reasonably expect to
 \end{figure}
 
 \subsubsection{Solver}
-Despite we did not modify the solver part, we observe approximately 6\% benefit of the D\&C version compared to the reference version.
-This gain is due to the better data locality enabled by the permutations explained in section~\ref{sec:DCrec}. To show the impact of locality, we randomly permute the data and observe a degradation of the performance. We then measure the L3 cache misses occurring in the solver for the original version and the D\&C permutted version. They are 23\% lower with D\&C.
+Despite we did not modify the solver part, we observe in figure~\ref{fig:solCurves} approximately 6\% speed-up for the D\&C version compared to the reference version.
+This gain is due to the better data locality enabled by the permutations explained in section~\ref{sec:DCrec}.
+To show the impact of locality, we randomly permute the data and observe a degradation of the performance.
+The result shows that the initial data already expose good locality.
+Moreover, when measuring the L3 cache misses occurring in the solver for the original version and for the D\&C permutted version, they are 23\% lower with D\&C.
 
 \begin{figure}[htp]
  \centering
@@ -371,13 +373,16 @@ This gain is due to the better data locality enabled by the permutations explain
 \end{figure}
 
 \section{Conclusion and Future Work}
-FEM assembly is the first step of many applications, such as seismic simulation, metal forming, or crash test simulations. Depending on the application, the FEM assembly can cover more than 80\% of the execution time.
+FEM assembly is the first step of many applications, such as seismic simulation, metal forming, or crash test simulations.
+Depending on the application, the FEM assembly can cover more than 80\% of the execution time.
 In the Dassault Aviation DEFMESH application, our current implementation is already faster than the pure MPI original version and overpasses in performance and scalability the state-of-the-art coloring approach.
 
-Even without exploiting the thread level parallelism, the D\&C approach  significantly improves the locality and the scalability and execution time. The pure MPI version with D\&C has a perfect strong scaling for our experimental setup.
+Even without exploiting the thread level parallelism, the D\&C approach  significantly improves the locality, the scalability, and the execution time.
+The pure MPI version with D\&C has a perfect strong scaling for our experimental setup.
 
 As a future work, we plan to parallelize the separator in the D\&C FEM assembly and experiment on a larger number of cores.
-We strongly believe that our approach will provide good performances on new manycores such as Xeon Phi. Extension will focus on D\&C friendly data structure definition and apply D\&C on other parts of the FEM application. 
+We strongly believe that our approach will provide good performances on new manycores such as Xeon Phi.
+Extension will focus on D\&C friendly data structure definition and apply D\&C on other parts of the FEM application. 
 %We are also considering a hybrid approach using coloring inside each D\&C sub-domains in order to enable vectorization.
 \bibliographystyle{unsrt}
 \bibliography{dc_bib}
