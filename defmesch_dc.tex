@@ -254,7 +254,7 @@ The experiments done on a 1024 nodes cluster result in significant speed-up on s
 
 \section{Experiments}
 To validate our approach, we apply the D\&C algorithm using Cilk and MPI to the FEM assembly step of an application from Dassault Aviation called DEFMESH.
-We compare our results to the original pure MPI version of the FEM assembly step and also to a MPI + OpenMP version using the coloring approach.
+We compare our results to the pure MPI original version of the FEM assembly step and also to the MPI + OpenMP version using the coloring approach.
 
 \subsection{Dassault Aviation DEFMESH Application}
 The DEFMESH application is a Computational Fluid Dynamics (CFD) code based on a Finite Element Method (FEM).
@@ -276,38 +276,40 @@ The mesh is updated after each deformation and thus, each step of the kernel are
 
 We launch this application on two different test cases which are both unstructured meshes from Dassault Aviation.
 First one is a small mesh of 152 086 elements and 27 499 nodes which represents an M6 wing. We used it for developing and debugging.
-Second test case, called EIB, is composed of 6 346 108 elements and 1 079 758 nodes. It represents the displacement of fuel tank along a plane fuselage.
+Second test case, called EIB, is composed of 6 346 108 elements and 1 079 758 nodes. It represents the displacement of fuel tank along an airplane fuselage.
 This EIB test case has been used for experiments and measures presented in next section.
 
-\subsection{Experimental Setups}
-Experiments are done on the Dassault Aviation EIB test case. EIB is an unstructured mesh composed of 6 346 108 elements and 1 079 758 nodes. It represents the displacement of a fuel tank along a plane fuselage. This case is illustrated in the figure~\ref{TODO:add the figure from quang report}
+\subsection{Experimental Setup}
+We performed our experiments on the Dassault Aviation EIB test data set. EIB is an unstructured mesh composed of 6 346 108 elements and 1 079 758 nodes.
+It represents the displacement of a fuel tank along an airplane fuselage. This case is illustrated in the figure~\ref{TODO:add the figure from quang report}.
 
 In the following experiments, we compare two versions of the DEFMESH application: the original one from Dassault Aviation called $Ref$ and the new Divide \& Conquer
 version called $D\&C$.
-The original version uses MPI between the different blocks of the mesh and OpenMP in some loops of the solver.
-The D\&C version, as described above uses a recursive partitioning of each block of the mesh. It exploits, in addition to MPI and OpenMP,
-a Cilk task parallelism of the assembly step.
-We also compare our results to the coloring implementation of the assembly, using OpenMP parallelism.
+The original version uses MPI between the different blocks of the mesh and OpenMP to parallelize the sparse matrix-vector loop.
+The D\&C version, as described above uses a recursive partitioning of each block of the mesh.
+In addition to MPI and OpenMP, this version also exploits a Cilk task parallelism of the FEM assembly.
+We also compare our results to the coloring implementation of the FEM assembly, using OpenMP.
 
 For each of these versions, we consider the Laplacian and elasticity variants of DEFMESH.
 For both of them, the application runs in 50 steps of resolution and measures correspond to the average time of one iteration.
-In all cases we measure the assembly step, where the D\&C approach has been applied.
+In all cases we measure the FEM assembly step, where the D\&C approach has been applied.
 We also measure the solver to estimate the impact of the data permutations on the rest of the code.
 
 We present the results both in terms of execution times and of parallel efficiency.
-In all the graphics, the X axis represents the number of cores used. It corresponds to the product of MPI processes by the number of threads.
-In graphics presenting execution times, the Y axis correspond to RDTSC cycles for the assembly step and to MPI\_Wtime seconds for the solver.
-Concerning efficiency, the Y axis represents the parallel efficiency given by the following formula:
+In all the graphics, the \emph{x} axis represents the number of cores. It corresponds to the number of MPI processes multiplied by the number of threads.
+In figures presenting execution time, the \emph{y} axis corresponds to RDTSC cycles for the FEM assembly and to \texttt{MPI\_Wtime} for the solver.
+Concerning efficiency, the \emph{y} axis represents the parallel efficiency given by the following formula:
 $E_{P} = \frac{T_{S}}{P*T_{P}}$. $E_{P}$ is the efficiency on $P$ processor, $T_{S}$ the sequential time, and $T_{P}$ the time on $P$ processors.
 
-For each graphics, we use 1, 4, 8 and 12 MPI tasks and from 1 to 12 threads while the combination of MPI processes per threads is lower or equal to 12.
-This corresponds to the number of cores available. In all cases, the number of Cilk threads used in the assembly is equal to the number of OpenMP threads used in the solver.
-We also varied the number of METIS partitions and Cilk tasks in a large scope of values but we have not observed significant changes in the results.
-Final values are 512 partitions and 128 Cilk tasks. This corresponds to approximately 10 tasks per core, which is recommended in Cilk documentations. TODO and enough to fit into caches?
+For each figures, we use 1, 4, 8 and 12 MPI tasks and from 1 to 12 threads, OpenMP or Cilk, while the multiplication of MPI processes per threads is lower or equal to 12.
+This corresponds to the number of cores available. In all cases, the number of Cilk threads used in the FEM assembly is equal to the number of OpenMP threads used in the solver.
+We also varied the number of METIS partitions and the number of Cilk tasks, but we have not observed significant changes in the results.
+According to the Cilk documentations, 10 tasks per core is optimal. Therefore we use 128 Cilk tasks.
+We cut MPI domains in 512 partitions which is enough to fit in cache.
 
-All experiments have been done with default policies. The OpenMP affinity is set to scatter and Cilk threads are not pinned.
-These experiments runs on an UVSQ server composed of twelve cores distributed in two sockets of 6-cores Intel® Xeon® X5650 clocked at 2.67 GHz.
-Concerning memory hierarchy, each core has its own L1 and L2 caches of resp. 32KB and 256KB and a shared L3 cache of 12MB. Main memory is split in two NUMA nodes of 16GB.
+The OpenMP affinity is set to scatter and Cilk threads are not pinned.
+We perform these experiments on twelve cores grouped in two sockets of 6 cores Intel® Xeon® X5650 clocked at 2.67 GHz.
+Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
 \subsection{Results}
 
@@ -323,7 +325,7 @@ Indeed, separator elements are not parallelized and can represent an important p
 According to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases too. This is confirmed on figure~\ref{fig:asmCurvesC}.
 
 In the elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{fig:asmCurvesD}, the D\&C approach become equivalent to pure MPI.
-Since the amount of work of the assembly step is bigger than in the laplacian variant, the proportion of the sequential computation, including the separators, is lower. In this case the scalability improves. Futhermore, contrary to the pure MPI version, the data always fits in L2 cache with the D\&C version.
+Since the amount of work of the FEM assembly step is bigger than in the laplacian variant, the proportion of the sequential computation, including the separators, is lower. In this case the scalability improves. Futhermore, contrary to the pure MPI version, the data always fits in L2 cache with the D\&C version.
 
 Unlike the original version that makes irregular accesses to the cells of the matrix, the D\&C version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
 For any problem size, with D\&C, we can increase the number of partitions such that the tasks working-set will always fit in cache.
