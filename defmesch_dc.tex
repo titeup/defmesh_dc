@@ -95,8 +95,9 @@ The paper outline is the following:
 %\end{itemize}
 
 Finite element assembly is common in most of scientific applications using finite element methods.
-A simple FEM assembly illustration of a 2D regular mesh is presented in figure~\ref{fig:2Dasm}.
+A simple FEM assembly illustration of a 2D regular mesh is presented in figure~\ref{fig:2Dasm} with the associated sparse matrix.
 The values of the edges are the reduction of neighbor element contribution. In figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$.
+The non-zero values of the matrix corresponds to the edges of the mesh. This matrix is sparse and symmetrical, thus we store only the lower triangular non-zero values.
 In 3D, the number of neighbor elements can be arbitrary large.
 
 To create parallelism, we must build independent domains to compute in parallel and synchronize between them to handle shared edges.
