@@ -293,7 +293,7 @@ It represents the displacement of a fuel tank along an airplane fuselage. This c
 \begin{figure}[htp]
  \centering
  \subfigure[]{\label{fig:EIB3D}\includegraphics[width=0.49\textwidth]{reservoir_3D.png}}
-  \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.49\textwidth]{reservoir_projection.png}}
+ \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.49\textwidth]{reservoir_projection.png}}
  \subfigure[]{\label{fig:EIB_high}\includegraphics[width=0.32\textwidth]{reservoir_haut.png}}
  \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.32\textwidth]{reservoir_milieu.png}}
  \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.32\textwidth]{reservoir_bas.png}}
@@ -302,8 +302,6 @@ It represents the displacement of a fuel tank along an airplane fuselage. This c
 \end{figure}
 
 \subsection{Experimental Setup}
-
-
 In the following experiments, we compare two versions of the DEFMESH application: the original one from Dassault Aviation called $Ref$ and the new Divide \& Conquer
 version called $D\&C$.
 The original version uses MPI between the different blocks of the mesh and OpenMP to parallelize the sparse matrix-vector loop.
@@ -333,7 +331,6 @@ We perform these experiments on twelve cores grouped in two sockets of 6 cores I
 Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
 \subsection{Results}
-
 The following sections presents our measurement for the elastic and laplacian version for the FEM assembly. 
 
 NOTE TO THE REVIEWERS: The experiments on coloring are in progress and will be included in the final version of the paper.
