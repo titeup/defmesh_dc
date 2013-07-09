@@ -156,8 +156,8 @@ This way, we take the benefit of the machine topology and most of communication 
 
 The rational is to divide recursively the work in two or more independent tasks and synchronize these tasks locally. This recursive approach has many advantages.
 First the recursive sharing naturally exposes high concurrency. As long as the application is large enough, it is possible to produce a deeper recursive tree to get more concurrency and 
-therefore match the higher requirement of manycore systems. Furthermore, synchronizations are local: only nodes of a same parent in the recursive tree need have to be synchronized.
-Finally, D\&C approach improves the data locality by reordering the data as shown in section~\ref{sec:DCrec} 
+therefore match the higher requirement of manycore systems. Furthermore, synchronizations are local: only nodes of a same parent in the recursive tree have to be synchronized.
+Finally, D\&C approach improves the data locality by reordering the data as shown in section~\ref{sec:DCrec}.
 
 On a small number of cores, the scalability of the D\&C parallelization is expected to be equivalent to the pure MPI.
 However, for a larger number of cores, D\&C should continue scaling while pure MPI should not.
@@ -195,7 +195,8 @@ In order to optimize the locality with permutations while not multiplying tasks,
 %To do so, the tasks execute in one block the left, right and separator domains contiguously stored in memory.
 
 The partitionment is topological: cuts are done on edges rather than on geometrical coordinates.
-This allows to compute sub-domains only one time for a mesh and it is independent from the rest of the computation. Therefore, this partition is precomputed and stored with the mesh.
+This allows to compute sub-domains only one time for a mesh and it is independent from the rest of the computation.
+Therefore, the partitionment is precomputed and the associated permutation is stored with the mesh.
 During the run, the application needs only to apply the precomputed permutation before executing the recursive FEM assembly.
 \begin{figure}[htp]
  \centering
@@ -228,7 +229,7 @@ end
 \end{figure}
 
 Once the recursive task tree as shown in figure~\ref{fig:DCrec} is constructed, the Cilk implementation is straightforward.
-Following the pseudo-code in figure~\ref{fig:DCcode} Until the recursion has not reached a leaf (domain size condition), left and right sub-domains of each node are split in two tasks and executed in parallel.
+Following the pseudo-code in figure~\ref{fig:DCcode}, until the recursion has not reached a leaf (domain size condition), left and right sub-domains of each node are split in two tasks and executed in parallel.
 These tasks have to complete before launching the separator computation. 
 When the recursion reaches the leaves, the original sequential FEM assembly routine is executed on their sub-domains.
 
@@ -246,7 +247,7 @@ A first method presented in~\cite{cecka2011assembly} consists in creating parall
 This method has a very fine grain thread parallelism and thus can be applied only to GPUs.
 First, they store contributions from all elements in the global or local memory in parallel and then reduce in parallel these contributions used to compute the non-zero values.
 By arranging the data layout, this method can provide good performance on GPUs.
-However, this method can suffer from bad load balancing since the number of neighbor elements to compute non-zero values may vary.
+However, this method can suffer from bad load balancing since the number of neighbor elements used to compute non-zero values may vary.
 Moreover, the amount of local copies grows quickly and thus the approach is limited to relatively small test cases.
 Another variant consists in using one thread for the whole FEM assembly step of one non-zero value at a time, but this approach leads to redundant computations of element contributions.
 
