@@ -336,7 +336,7 @@ Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 1
 The following sections present our measurement for the elastic and Laplacian version for the FEM assembly.
 
 \subsubsection{Assembly}
-As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the D\&C approach is slower than pure MPI, especially when we increase the number of cores.
+As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the coloring approach is the slower and the D\&C approach is very close to the pure MPI but it starts to decrease after 6 cores. 
 This is due to the remaining sequential part of the D\&C code and the low intensity work in the Laplacian version.
 Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
 According to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases.
@@ -347,6 +347,7 @@ Since the amount of work of the FEM assembly step is bigger than in the laplacia
 In this case the scalability improves. Furthermore, contrary to the pure MPI version, the data always fits in L2 cache with the D\&C version.
 Unlike the original version that makes irregular accesses to the cells of the matrix, the D\&C version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
 For any problem size, with D\&C, we can increase the number of partitions such that the tasks working-set will always fit in cache.
+The coloring is still the slower version.
 
 To conclude, these first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
 
