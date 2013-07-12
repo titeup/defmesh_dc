@@ -294,11 +294,11 @@ We performed our experiments on an unstructured mesh from Dassault Aviation, cal
 It is composed of 6 346 108 elements and 1 079 758 nodes and it represents the displacements of a fuel tank along an airplane fuselage.
 \begin{figure}[htp]
  \centering
- \subfigure[]{\label{fig:EIB3D}\includegraphics[width=0.42\textwidth]{reservoir_3D.png}}
- \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.42\textwidth]{reservoir_projection.png}}
- \subfigure[]{\label{fig:EIB_high}\includegraphics[width=0.32\textwidth]{reservoir_haut.png}}
- \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.32\textwidth]{reservoir_milieu.png}}
- \subfigure[]{\label{fig:EIB_bottom}\includegraphics[width=0.32\textwidth]{reservoir_bas.png}}
+ \subfigure[]{\label{fig:EIB3D}\includegraphics[width=0.32\textwidth]{reservoir_3D.png}}
+ \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.32\textwidth]{reservoir_projection.png}}\\
+ \subfigure[]{\label{fig:EIB_high}\includegraphics[width=0.28\textwidth]{reservoir_haut.png}}
+ \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.28\textwidth]{reservoir_milieu.png}}
+ \subfigure[]{\label{fig:EIB_bottom}\includegraphics[width=0.28\textwidth]{reservoir_bas.png}}
  \caption{EIB fuel tank position optimization test case}
  \label{fig:reservoir}
 \end{figure}
@@ -332,10 +332,8 @@ The OpenMP affinity is set to scatter and Cilk threads are not pinned.
 We perform these experiments on twelve cores grouped in two sockets of 6 cores Intel® Xeon® X5650 clocked at 2.67 GHz.
 Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
-\subsection{Results}
-The following sections present our measurement for the elastic and Laplacian version for the FEM assembly.
 
-\subsubsection{Assembly}
+\subsection{FEM-Assembly results}
 As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the coloring approach is the slower and the D\&C approach is very close to the pure MPI but it starts to decrease after 6 cores. 
 This is due to the remaining sequential part of the D\&C code and the low intensity work in the Laplacian version.
 Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
@@ -361,7 +359,7 @@ To conclude, these first results are encouraging and we can reasonably expect to
  \label{fig:asmCurves}
 \end{figure}
 
-\subsubsection{Solver}
+\subsection{Solver}
 Despite we did not modify the solver part, we observe in figure~\ref{fig:solCurves} approximately 6\% speed-up for the D\&C version compared to the reference version.
 This gain is due to the better data locality enabled by the permutations explained in section~\ref{sec:DCrec}.
 To show the impact of locality, we randomly permute the data and observe a degradation of the performance.
@@ -386,6 +384,14 @@ As a future work, we plan to parallelize the separator in the D\&C FEM assembly 
 We strongly believe that our approach will provide good performances on new manycores such as Xeon Phi.
 Extension will focus on D\&C friendly data structure definition and apply D\&C on other parts of the FEM application. 
 %We are also considering a hybrid approach using coloring inside each D\&C sub-domains in order to enable vectorization.
+
+\subsubsection*{Acknowledgments} \scriptsize{
+This work has been supported by the ITEA2 project H4H, the French Ministry for Economy,
+Industry, and Employment, CEA, GENCI, Intel and UVSQ.  Any opinions,
+findings, and conclusions or recommendations expressed in this
+material are those of the author(s) and do not necessarily reflect the
+views of the CEA, GENCI, Intel, Dassault Aviation or UVSQ.}
+
 \bibliographystyle{unsrt}
 \bibliography{dc_bib}
 
