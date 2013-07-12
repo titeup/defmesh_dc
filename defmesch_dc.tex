@@ -308,7 +308,7 @@ the original one from Dassault Aviation called $Ref$, the new Divide \& Conquer 
 The original version uses MPI between the different blocks of the mesh and OpenMP to parallelize the sparse matrix-vector loop of the solver.
 The D\&C version uses the recursive partitioning of each block of the mesh.
 In addition to MPI and OpenMP, this version also exploits a Cilk task parallelism in the FEM assembly.
-The coloring version exploits OpenMP parallelism in the FEM assembly, between all the elements of a same color.
+The coloring version exploits OpenMP parallelism between all the elements of a same color in the FEM assembly.
 
 For each of these versions, we consider the Laplacian and the elastic variants of DEFMESH.
 For both of them, the application runs in 50 steps of resolution and the measures correspond to the average time of one iteration.
