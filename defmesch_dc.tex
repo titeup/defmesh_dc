@@ -38,7 +38,7 @@ and
 \begin{abstract}
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machines.
 Pure MPI codes are wasting IO, memory and communication. HPC users have to explore new paradigms to make an efficient usage of the shared resources,
-such as hybrid MPI+threads.
+such as hybrid MPI + threads.
 In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the shared memory parallelization of an unstructured mesh assembly to sparse matrix.
 Our target application is an industrial CFD application from Dassault Aviation.
 Our implementation is based on the versatile Cilk runtime and standard MPI.
@@ -255,13 +255,14 @@ For the DEFMESH application, we observe a better scalability with the \emph{cilk
 Many choices are available to complete FEM assembly in parallel.
 All methods have their advantages and their limitations, depending for instance on the target architecture or the mesh size.
 Recent studies~\cite{cecka2011assembly,CPUGPUasm} investigate different ways to compute FEM assembly on CPUs and GPUs.
+
 A first method presented in~\cite{cecka2011assembly} consists in creating parallelism between all the non-zero entries of the system of equations.
 This method has a very fine grain thread parallelism and thus can be applied only to GPUs.
-First, they store contributions from all elements in the global or local memory in parallel and then reduce in parallel these contributions used to compute the non-zero values.
+They store, in parallel, the contributions from all elements in the global or local memory and then reduce in parallel these contributions to compute the non-zero values.
 By arranging the data layout, this method can provide good performance on GPUs.
 However, it suffers from bad load balancing since the number of neighboring elements used to compute non-zero values may vary.
 Moreover, the amount of local copies grows quickly and thus the approach is limited to relatively small test cases.
-Another variant consists in using one thread for the whole FEM assembly step of one non-zero value at a time, but this approach leads to redundant computations of element contributions.
+Another variant consists in using one thread for the whole FEM assembly step of one non-zero value at a time. This approach however leads to redundant computations of element contributions.
 
 A second method~\cite{cecka2011assembly} consists in assembling by mesh element. One thread is responsible for the whole FEM assembly step of one element at a time.
 It can be applied to both GPUs and CPUs.
@@ -269,16 +270,16 @@ A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in
 This way, each thread has a good load balance per color. The load balancing between colors has no influence since they are sequentialized.
 However, bad data locality can cause poor performance as explained is section~\ref{sec:col}.
 
-Divide and Conquer paradigm and recursion in general has been already explored for a long time for parallel algorithm~\cite{div}.
+Divide and Conquer paradigm and recursion in general have already been explored extensively for parallel algorithm~\cite{div}.
 M. Martone et al.~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
 Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, according to authors results, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm}.
-In 2008, Dongarra et al.~\cite{Dongarra} evaluated an asynchronous task based parallelism approach for well-known factorization algorithms and compared it to traditional fork-join approach.
-A recent investigation on hybrid programmation integrating task based parallelism in MPI processes have been made~\cite{MPIhybid}.
+Dongarra et al.~\cite{Dongarra} evaluate an asynchronous task based parallelism approach for well-known factorization algorithms and compared it to traditional fork-join approach.
+A recent investigation on hybrid programmation integrating task based parallelism in MPI processes have been made~\cite{MPIhybrid}.
 The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to pure MPI.
 
 \section{Experiments}
-To validate our approach, we apply the D\&C algorithm using Cilk and MPI to the FEM assembly step of an application from Dassault Aviation called DEFMESH.
-We compare our results to the pure MPI original version of the FEM assembly step and to the MPI + OpenMP version using the coloring approach.
+To validate our approach, we apply the D\&C algorithm using Cilk and MPI on the FEM assembly step of an application from Dassault Aviation called DEFMESH.
+We compare our results with the pure MPI original version of the FEM assembly step and with the MPI + OpenMP version using the coloring approach.
 
 \subsection{Dassault Aviation DEFMESH Application}
 The DEFMESH application is a computational fluid dynamics (CFD) code based on a finite element method (FEM).
@@ -287,19 +288,22 @@ It is also used in other simulations which may include surface variations of lar
 
 DEFMESH implements a three-dimensional elasticity-like system of equations from given surface data.
 These equations are solved by two different alogorithms.
-The first one is a linear algorithm used when the magnitude of the surface data is small: the equations can be linearized into a system of linear equations with a symmetric definite positive matrix.
+The first one is a linear algorithm used when the magnitude of the surface data is small: the equations can be linearized into a system of linear equations.
 The second one is a non-linear algorithm where surface data of large magnitude are cut in a succession of small increments.
-The original equations are solved as a non-linear succession of linearized sub-problems, consisting of systems of linear equations, each described as a symmetric definite positive matrix.
-The systems of linear equations, with a symmetric definite positive matrix, are solved by a standard conjugate gradient (CG) algorithm.
+The original equations are solved as a non-linear succession of linearized sub-problems, consisting of systems of linear equations.
+ 
+ Each linear system is described as a symmetric definite positive matrix. The systems are solved by a standard conjugate gradient (CG) algorithm.
 
 DEFMESH implements two options for the definition of the elasticity-like operator for its system of volume equations.
-The Laplacian operator, which calls 3 times the CG algorithm at each linearized step. Each call computes the solution of a scalar system of linear equations.
-Secondly, the Elasticity operator, where the full 3D linear elasticity operator is implemented.
+The first one is  the Laplacian operator. It calls 3 times the CG algorithm at each linearized step.  Each CG call computes the solution of a scalar system of linear equations.
+The second one is the Elasticity operator. In this option, the full 3D linear elasticity operator is implemented.
 It couples the 3 mesh coordinates, thus at each linearized step, the CG algorithm has to solve a 3 by 3 system of linear equations.
-The “Elasticity operator” permits mesh deformations of greater magnitude and smoother deformed meshes than the “Laplacian operator”. DEFMESH main kernel is decomposed in three steps.
-First one is the FEM assembly, where mesh data are gathered into a CSR structure.
-Second step is the solver which works on this CSR structure and computes optimal displacements.
-Final step is the update of mesh coordinates using previously computed deformations.
+The Elasticity operator permits mesh deformations of greater magnitude and smoother deformed meshes than the Laplacian operator.
+
+The DEFMESH main kernel is decomposed in three steps.
+The first one is the FEM assembly, where mesh data are gathered into a CSR structure.
+The second step is the solver which works on this CSR structure and computes optimal displacements.
+The final step is the update of mesh coordinates using previously computed deformations.
 
 We performed our experiments on an unstructured mesh from Dassault Aviation, called EIB and illustrated in the figure~\ref{fig:reservoir}.
 It is composed of 6 346 108 elements and 1 079 758 nodes and it represents the displacements of a fuel tank along an airplane fuselage.
@@ -324,7 +328,7 @@ The coloring version exploits OpenMP parallelism between all the elements of a s
 
 For each of these versions, we consider the Laplacian and the elastic variants of DEFMESH.
 For both of them, the application needs 50 steps and the measures correspond to the average time of one iteration.
-In all cases we measure the FEM assembly step, where the D\&C approach and the coloring have been applied.
+We measure the FEM assembly step, where the D\&C approach and the coloring have been applied.
 We also measure the solver to estimate the impact of the D\&C data permutations on the rest of the code.
 
 We present the results both in terms of execution times and of parallel efficiency.
@@ -334,9 +338,9 @@ Concerning efficiency, the \emph{y} axis represents the parallel efficiency give
 $E_{P} = \frac{T_{S}}{P*T_{P}}$, where $E_{P}$ is the efficiency on $P$ processor, $T_{S}$ the sequential time, and $T_{P}$ the time on $P$ processors.
 
 For each figure, we use 1, 4, 8 and 12 MPI processes and 1 to 12 threads, OpenMP or Cilk, while the multiplication of MPI processes per thread is lower or equal to 12.
-This corresponds to the number of cores available. In all cases, the number of Cilk threads used in the FEM assembly is equal to the number of OpenMP threads.
-We also varied the number of METIS partitions and the number of Cilk tasks, but we have not observed significant changes in the results.
-According to the Cilk documentations, 10 tasks per core is appropriate. Therefore we use 128 Cilk tasks, which is also enough to fit in cache.
+This corresponds to the number of cores available. The number of Cilk threads used in the FEM assembly is equal to the number of OpenMP threads.
+We also made the number of METIS partitions and the number of Cilk tasks vary, but we have not observed significant changes in the results.
+According to the Cilk documentations, 10 tasks per core is appropriate. Therefore we use 128 Cilk tasks, which is enough to fit in cache.
 We cut MPI domains in 512 partitions to improve locality.
 
 The OpenMP affinity is set to scatter and Cilk threads are not pinned.
@@ -348,7 +352,7 @@ Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 1
 As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the coloring approach is the slower and the D\&C approach is very close to the pure MPI but it starts to decrease after 6 cores. 
 This is due to the remaining sequential part of the D\&C code and the low intensity work in the Laplacian version.
 Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
-According to the Amdahl law, by increasing the number of cores, the proportion of the sequential part increases.
+According to the Amdahl's law, by increasing the number of cores, the proportion of the sequential part increases.
 This is confirmed on figure~\ref{fig:asmCurvesC} showing the parallel efficiency.
 
 In the elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{fig:asmCurvesD}, the D\&C approach becomes equivalent to pure MPI.
@@ -358,7 +362,7 @@ Unlike the original version that makes irregular accesses to the cells of the ma
 For any problem size, with D\&C, we can increase the number of partitions such that the tasks working-set will always fit in cache.
 As it can be seen from figure~\ref{fig:asmCurvesB}, coloring is again the slower version.
 
-To conclude, these first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
+These first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
 
 \begin{figure}[htp]
  \centering
@@ -372,7 +376,7 @@ To conclude, these first results are encouraging and we can reasonably expect to
 
 \subsection{Solver}
 We did not modify the solver part. However, we observe in figure~\ref{fig:solCurves} approximately 6\% speed-up for the D\&C version compared to the reference version.
-This gain is due to the better data locality enabled by the permutations explained in section~\ref{sec:DCrec}.
+This improvement is due to the better data locality enabled by the permutations explained in section~\ref{sec:DCrec}.
 To show the impact of locality, we randomly permute the data and observe a degradation of the performance.
 The result shows that the initial data already expose good locality.
 Moreover, the L3 cache misses occurring in the solver are 23\% lower with D\&C.
