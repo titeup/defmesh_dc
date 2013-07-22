@@ -23,7 +23,7 @@
 %\subtitle{Subtitle}
 
 \author[A]{\fnms{Lo\"ic} \snm{Th\'ebault}%
-\thanks{Corresponding Author E-mail: Loic.thebault@prism.uvsq.fr}},
+\thanks{Corresponding Author E-mail: loic.thebault@prism.uvsq.fr}},
 \author[A]{\fnms{Eric} \snm{Petit}},
 \author[D]{\fnms{Marc} \snm{Tchiboukdjian}},
 \author[B]{\fnms{Quang} \snm{Dinh}},
@@ -77,7 +77,7 @@ Cilk~\cite{cilk5}.
 We demonstrate the potential of the D\&C approach on the assembly step for Finite Element Methods, FEM.
 This step builds a matrix describing the linear system of equations from the mesh.
 The values in the sparse matrix are the result  reduction operation on the neighboring elements.
-Due to the irregularity of the structure and the sequentialization of the reduction, achieving an efficient parallelization is challenging. 
+Due to the irregularity of the structure and the serialization of the reduction, achieving an efficient parallelization is challenging. 
 The state of the art approach for shared memory multicores parallelization is the coloring approaches.
 Recent works published on parallelizing FEM assembly codes
 %In the manycore context, new algorithms
@@ -96,7 +96,7 @@ The paper outline is the following:
 \end{itemize}
 
 \section{FEM Assembly}
-%The process alterate the mesh geometry and be conservative of the mesh topology.  We have to work on a very unstructured mesh. Therefore, load balancing and interface
+%The process alterates the mesh geometry and be conservative of the mesh topology.  We have to work on a very unstructured mesh. Therefore, load balancing and interface
 %computation prevent us to use geometrical domain decomposition.
 %We use METIS~\cite{Metis} to do a topological domain decomposition that will not vary with the mesh deformation.
 %The application iterates over three basic steps:
@@ -127,7 +127,7 @@ We consider two different approaches, a state-of-the-art coloring approach and o
 \label{sec:col}
 Coloring avoids race conditions by assigning a different color to the elements sharing an edge.
 It was originally targeting vector machines. Indeed elements of a same color do not contribute to the same edges and thus can be executed in parallel.
-Determining a minimal coloring is NP-complete, but creating an efficient coloring with a larger number of colors using heuristic is well-known in litterature~\cite{CPUfe}.
+Determining a minimal coloring is NP-complete, but creating an efficient coloring with a larger number of colors using heuristic is well-known in literature~\cite{CPUfe}.
 A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colApp}.
 ~\\~\\~\\
 {
@@ -145,7 +145,7 @@ A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colA
 
 			For each color C in colors
     				Parallel_For all elements E in C
-        					compute_element_contribution (E,C)
+        					compute_element_contribution (E)
  		\end{verbatim}
  \end{minipage}	
  \captionof{figure}{\label{fig:colApp} The coloring approach}
@@ -206,9 +206,9 @@ As illustrated in figure~\ref{fig:DCrec}, each leaf of the resulting tree is ass
 In order to optimize the locality with permutations whithout multiplying tasks, it is possible to stop the recursion before reaching the leaves.
 %To do so, the tasks execute in one block the left, right and separator domains contiguously stored in memory.
 
-The partitionment is topological: cuts are done on edges rather than on geometrical coordinates.
+The partitioning is topological: cuts are done on edges rather than on geometrical coordinates.
 This allows to only compute sub-domains once for a mesh and it is independent from the rest of the computation.
-Therefore, the partitionment is precomputed and the associated permutation is stored with the mesh.
+Therefore, the partitioning is precomputed and the associated permutation is stored with the mesh.
 During the run, the application needs to apply the precomputed permutation before executing the recursive FEM assembly.
 \begin{figure}[htp]
  \centering
@@ -220,7 +220,7 @@ During the run, the application needs to apply the precomputed permutation befor
 \subsubsection{Cilk Implementation}
 Cilk~\cite{cilk5} is a task based runtime originally developed by Frigo, Leiserson and Randal at MIT and now supported by Intel.
 It allows users to \emph{spawn} and \emph{sync} many parallel tasks.
-All these tasks are organised in queues and executed by \emph{worker} threads.
+All these tasks are organized in queues and executed by \emph{worker} threads.
 For load balancing, Cilk runtime uses a work-stealing scheduler. When a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
 
 \begin{figure}[htp]
@@ -267,14 +267,14 @@ Another variant consists in using one thread for the whole FEM assembly step of 
 A second method~\cite{cecka2011assembly} consists in assembling by mesh element. One thread is responsible for the whole FEM assembly step of one element at a time.
 It can be applied to both GPUs and CPUs.
 A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in parallel on independent elements.
-This way, each thread has a good load balance per color. The load balancing between colors has no influence since they are sequentialized.
+This way, each thread has a good load balance per color. The load balancing between colors has no influence since they are serialized.
 However, bad data locality can cause poor performance as explained is section~\ref{sec:col}.
 
 Divide and Conquer paradigm and recursion in general have already been explored extensively for parallel algorithm~\cite{div}.
 M. Martone et al.~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
 Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, according to authors results, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm}.
 Dongarra et al.~\cite{Dongarra} evaluate an asynchronous task based parallelism approach for well-known factorization algorithms and compared it to traditional fork-join approach.
-A recent investigation on hybrid programmation integrating task based parallelism in MPI processes have been made~\cite{MPIhybrid}.
+A recent investigation on hybrid programming integrating task based parallelism in MPI processes have been made~\cite{MPI_task}.
 The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to pure MPI.
 
 \section{Experiments}
@@ -343,8 +343,8 @@ We also made the number of METIS partitions and the number of Cilk tasks vary, b
 According to the Cilk documentations, 10 tasks per core is appropriate. Therefore we use 128 Cilk tasks, which is enough to fit in cache.
 We cut MPI domains in 512 partitions to improve locality.
 
-The OpenMP affinity is set to scatter and Cilk threads are not pinned.
-We perform these experiments on twelve cores grouped in two sockets of 6 cores Intel® Xeon® X5650 clocked at 2.67 GHz.
+The application has been compiled with Intel composers 13.1.0 (icc and ifort).The OpenMP affinity is set to scatter and Cilk threads are not pinned.
+We perform these experiments on twelve cores grouped in two sockets of 6 cores Intel Xeon X5650 clocked at 2.67 GHz.
 Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
 
