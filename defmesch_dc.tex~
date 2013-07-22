@@ -366,7 +366,7 @@ Moreover, when measuring the L3 cache misses occurring in the solver for the ori
 
 \begin{figure}[htp]
  \centering
- \includegraphics[scale=0.3]{Laplacian_solver_time.pdf}
+ \includegraphics[scale=0.5]{Laplacian_solver_time.pdf}
  \caption{Solver execution time}
  \label{fig:solCurves}
 \end{figure}
