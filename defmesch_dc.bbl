@@ -1,53 +1,62 @@
 \begin{thebibliography}{10}
 
+\bibitem{dc_specfem}
+Guillet Thomas and Tchiboukdjian Marc.
+\newblock Scalable and composable shared memory parallelism with tasks for
+  multicore and manycore.
+\newblock
+  http://www.teratec.eu/library/pdf/forum/2012/presentations/\\A2\_05\_FTeratec\_2012\_Tchiboukdjian\_Guillet.pdf,
+  2012.
+\newblock Accessed: 2013-Jul-08.
+
 \bibitem{cilk5}
 Matteo Frigo, Charles~E. Leiserson, and Keith~H. Randall.
-\newblock {The Implementation of the Cilk-5 Multithreaded Language}.
-\newblock In {\em Proceedings of the ACM SIGPLAN 1998 conference on programming
+\newblock The implementation of the cilk-5 multithreaded language.
+\newblock In {\em Proceedings of the ACM SIGPLAN 1998 conference on Programming
   language design and implementation}, PLDI '98, pages 212--223, New York, NY,
   USA, 1998. ACM.
 
 \bibitem{cecka2011assembly}
 Cris Cecka, Adrian~J Lew, and Eric Darve.
-\newblock {Assembly of Finite Element Methods on Graphics Processors}.
+\newblock Assembly of finite element methods on graphics processors.
 \newblock {\em International journal for numerical methods in engineering},
   85(5):640--669, 2011.
 
 \bibitem{CPUGPUasm}
 GR~Markall, A~Slemmer, DA~Ham, PHJ Kelly, CD~Cantwell, and SJ~Sherwin.
-\newblock {Finite Element Assembly Strategies on Multi-Core and Many-Core
-  Architectures}.
+\newblock Finite element assembly strategies on multi-core and many-core
+  architectures.
 \newblock {\em International Journal for Numerical Methods in Fluids},
   71(1):80--97, 2013.
 
 \bibitem{CPUfe}
 Charbel Farhat and Luis Crivelli.
-\newblock {A General Approach to Nonlinear FE Computations on Shared-Memory
-  Multiprocessors}.
+\newblock A general approach to nonlinear fe computations on shared-memory
+  multiprocessors.
 \newblock {\em Computer Methods in Applied Mechanics and Engineering},
   72(2):153--171, 1989.
 
 \bibitem{Metis}
 George Karypis and Vipin Kumar.
-\newblock {Metis-Unstructured Graph Partitioning and Sparse Matrix Ordering
-  System, version 2.0}.
+\newblock Metis-unstructured graph partitioning and sparse matrix ordering
+  system, version 2.0.
 \newblock 1995.
 
 \bibitem{CUDAfe}
 D.~Komatitsch, D.~Michea, and G.~Erlebacher.
-\newblock {Porting a High-Order Finite-Element Earthquake Modeling Application
-  to NVIDIA Graphics Card using CUDA}.
+\newblock Porting a high-order finite-element earthquake modeling application
+  to nvidia graphics card using cuda.
 \newblock {\em Journal of Parallel and Distributed Computing}, 69(5):451--460,
   2009.
 
 \bibitem{div}
 Ellis Horowitz and Alessandro Zorat.
-\newblock {Divide-and-Conquer for Parallel Processing}.
+\newblock Divide-and-conquer for parallel processing.
 \newblock {\em Computers, IEEE Transactions on}, 100(6):582--585, 1983.
 
 \bibitem{RSBasm}
 Michele Martone, Salvatore Filippone, Salvatore Tucci, and Marcin Paprzycki.
-\newblock {Assembling Recursively Stored Sparse Matrices}.
+\newblock Assembling recursively stored sparse matrices.
 \newblock In {\em Computer Science and Information Technology (IMCSIT),
   Proceedings of the 2010 International Multiconference on}, pages 317--325.
   IEEE, 2010.
@@ -55,21 +64,21 @@ Michele Martone, Salvatore Filippone, Salvatore Tucci, and Marcin Paprzycki.
 \bibitem{RSBsolver}
 Michele Martone, Salvatore Filippone, Pawel Gepner, Marcin Paprzycki, and
   Salvatore Tucci.
-\newblock {Use of Hybrid Recursive CSR/COO Data Structures in Sparse
-  Matrices-Vector Multiplication}.
+\newblock {Use of hybrid recursive CSR/COO data structures in sparse
+  matrices-vector multiplication}.
 \newblock In {\em International Multiconference on Computer Science and
   Information Technology - IMCSIT}, pages 327--335, 2010.
 
 \bibitem{Dongarra}
 Alfredo Buttari, Julien Langou, Jakub Kurzak, and Jack Dongarra.
-\newblock {A Class of Parallel Tiled Linear Algebra Algorithms for Multicore
-  Architectures}.
+\newblock A class of parallel tiled linear algebra algorithms for multicore
+  architectures.
 \newblock {\em Parallel Computing}, 35(1):38--53, 2009.
 
-\bibitem{MPIhybid}
+\bibitem{MPI_task}
 Sanjay Chatterjee, Sagnak Tas{\i}rlar, Zoran Budimlic, Vincent Cav{\'e}, Milind
   Chabbi, Max Grossman, Vivek Sarkar, and Yonghong Yan.
-\newblock {Integrating Asynchronous Task Parallelism with MPI}.
+\newblock Integrating asynchronous task parallelism with mpi.
 \newblock {\em Department of Computer Science, Rice University, Technical
   Report TR12-07}, 2013.
 

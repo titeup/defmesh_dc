@@ -330,6 +330,7 @@ For each of these versions, we consider the Laplacian and the elastic variants o
 For both of them, the application needs 50 steps and the measures correspond to the average time of one iteration.
 We measure the FEM assembly step, where the {\tt D\&C} approach and the coloring have been applied.
 We also measure the solver to estimate the impact of the {\tt D\&C} data permutations on the rest of the code.
+We ensure that the numerical results and the number of solver iterations needed to converge are stable in all versions.
 
 We present the results both in terms of execution times and of parallel efficiency.
 In all the graphics, the \emph{x} axis represents the number of cores. It corresponds to the number of MPI processes multiplied by the number of threads.
@@ -340,15 +341,12 @@ $E_{P} = \frac{T_{S}}{P*T_{P}}$, where $E_{P}$ is the efficiency on $P$ processo
 For each figure, we use 1, 4, 8 and 12 MPI processes and 1 to 12 threads, OpenMP or Cilk, while the multiplication of MPI processes per thread is lower or equal to 12.
 This corresponds to the number of cores available. The number of Cilk threads used in the FEM assembly is equal to the number of OpenMP threads.
 We also made the number of METIS partitions and the number of Cilk tasks vary, but we have not observed significant changes in the results.
-According to the Cilk documentations, 10 tasks per core is appropriate. Therefore we use 128 Cilk tasks, which is enough to fit in cache.
+According to the Cilk documentations, a minimum of 10 tasks per core is appropriate. Therefore we use 128 Cilk tasks, which is enough to fit in cache.
 We cut MPI domains in 512 partitions to improve locality.
 
-
-%%check the compiler version
-The application has been compiled with Intel composers 13.1.0 (icc and ifort).The OpenMP affinity is set to scatter and Cilk threads are not pinned.
+The application has been compiled with Intel composers 13.1.1 (icc and ifort).The OpenMP affinity is set to scatter and Cilk threads are not pinned.
 We perform these experiments on twelve cores grouped in two sockets of 6 cores Intel Xeon X5650 clocked at 2.67 GHz.
 Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
-
 
 \subsection{FEM Assembly results}
 As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the coloring approach is the slower version and the D\&C approach is very close to the pure MPI but it starts to decrease after 6 cores. 
@@ -379,9 +377,9 @@ These first results are encouraging and we can reasonably expect to match the id
 \subsection{Solver}
 We did not modify the solver part. However, we observe in figure~\ref{fig:solCurves} approximately 6\% speed-up for the D\&C version compared to the reference version.
 This improvement is due to the better data locality enabled by the permutations explained in section~\ref{sec:DCrec}.
-To show the impact of locality, we randomly permute the data and observe a degradation of the performance.
-The result shows that the initial data already expose good locality.
-Moreover, the L3 cache misses occurring in the solver are 23\% lower with D\&C.
+To show the impact of locality, we randomly permute the data and observe a significant degradation of performance.
+This result shows that the initial data already expose good locality.
+Moreover, the L3 cache misses occurring in the solver are 23\% lower with {\tt D\&C} than with {\tt Ref}.
 
 \begin{figure}[htp]
  \centering
