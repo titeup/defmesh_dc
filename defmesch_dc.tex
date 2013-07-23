@@ -1,4 +1,6 @@
-\documentclass{IOS-Book-Article}
+\documentclass[10pt]{IOS-Book-Article}
+
+
 
 \usepackage{mathptmx}
 \usepackage{graphicx}
@@ -13,6 +15,7 @@
 %\usepackage{setspace}
 %\setstretch{2}
 
+%\mag 2500
 
 \begin{document}
 \begin{frontmatter}              % The preamble begins here.
@@ -176,7 +179,7 @@ However, for a larger number of cores, D\&C should continue scaling while pure M
 Furthermore, in the D\&C approach, the code will benefit from the higher locality and reuse of elements. Therefore all the versions using the reordering should outperform the original code.
 
 D\&C consists of two parts described in following subsections.
-The first part is the recursive decomposition of each MPI domain and the second part is the recursive execution of the FEM assembly step using Cilk.
+The first part is the recursive decomposition of each MPI domain and the second is the recursive execution of the FEM assembly step using Cilk.
 
 \subsubsection{Recursive Bisection}
 \label{sec:DCrec}
@@ -203,7 +206,7 @@ These permutations are applied to all MPI domains, therefore we renumber the nod
 
 The proposed approach is then applied recursively to all sub-domains, providing a large amount of parallelism.
 As illustrated in figure~\ref{fig:DCrec}, each leaf of the resulting tree is associated with an independent Cilk task which executes the FEM assembly process on its sub-domain.
-In order to optimize the locality with permutation whithout multiplying tasks, it is possible to stop the recursion before reaching the leaves.
+In order to optimize the locality with permutations whithout multiplying tasks, it is possible to stop the recursion before reaching the leaves.
 %To do so, the tasks execute in one block the left, right and separator domains contiguously stored in memory.
 
 The partitioning is topological: cuts are done on edges rather than on geometrical coordinates.
@@ -219,7 +222,7 @@ During the run, the application needs to apply the precomputed permutation befor
 
 \subsubsection{Cilk Implementation}
 Cilk~\cite{cilk5} is a task based runtime originally developed by Frigo, Leiserson and Randal at MIT and now supported by Intel.
-It allows users to \emph{spawn} and \emph{sync} many parallel tasks.
+It allows users to {\tt spawn} and {\tt sync} many parallel tasks.
 All these tasks are organized in queues and executed by \emph{worker} threads.
 For load balancing, Cilk runtime uses a work-stealing scheduler. When a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
 
@@ -241,14 +244,14 @@ end
 \end{figure}
 
 Once the recursive task tree as shown in figure~\ref{fig:DCrec} is constructed, the Cilk implementation is straightforward.
-Following the pseudo-code in figure~\ref{fig:DCcode}, as long as the recursion has not reached a leaf (domain size condition), left and right sub-domains of each node are split in two tasks and executed in parallel.
+Following the pseudo-code in figure~\ref{fig:DCcode}, left and right sub-domains of each node are split in two tasks and executed in parallel, as long as the recursion has not reached a leaf (domain size condition).
 These tasks have to be completed before launching the separator computation. 
 When the recursion reaches the leaves, the original sequential FEM assembly routine is executed on their sub-domains.
 
 When all elements are accessed in a regular loop, there is no need to use a recursive task tree.
-In this case, similarly to OpenMP, Cilk provides an easy way to parallelize loops using the \emph{cilk\_for} keyword.
-By substituting the original \emph{for} with the \emph{cilk\_for} keyword, iterations of the loop are split recursively in several parallel tasks.
-For the DEFMESH application, we observe a better scalability with the \emph{cilk\_for} than with \emph{OpenMP parallel for} pragma.
+In this case, similarly to OpenMP, Cilk provides an easy way to parallelize loops using the { \tt cilk\_for} keyword.
+By substituting the original {\tt for} with the {\tt cilk\_for} keyword, iterations of the loop are split recursively in several parallel tasks.
+For the DEFMESH application, we observe a better scalability with the {\tt cilk\_for} than with OpenMP {\tt parallel for} pragma.
 
 
 \section{Related Works}
@@ -262,7 +265,7 @@ They store, in parallel, the contributions from all elements in the global or lo
 By arranging the data layout, this method can provide good performance on GPUs.
 However, it suffers from bad load balancing since the number of neighboring elements used to compute non-zero values may vary.
 Due to  the fast growing number of local copies, the approach is limited to relatively small test cases.
-Another variant consists in using one thread for the whole FEM assembly step of one non-zero value at a time. This approach however leads to redundant computations of element contributions.
+Another variant consists in using one thread for the whole FEM assembly step of one non-zero value at a time. However, this approach leads to redundant computations of element contributions.
 
 A second method~\cite{cecka2011assembly} consists in assembling by mesh element. One thread is responsible for the whole FEM assembly step of one element at a time.
 It can be applied to both GPUs and CPUs.
@@ -296,7 +299,7 @@ The original equations are solved as a non-linear succession of linearized sub-p
 
 DEFMESH implements two options for the definition of the elasticity-like operator for its system of volume equations.
 The first one is  the Laplacian operator. It calls 3 times the CG algorithm at each linearized step.  Each CG call computes the solution of a scalar system of linear equations.
-The second one is the Elasticity operator. In this option, the full 3D linear elasticity operator is implemented.
+The second one is the Elasticity operator. This option implements the full 3D linear elasticity operator.
 It couples the 3 mesh coordinates, thus at each linearized step, the CG algorithm has to solve a 3 by 3 system of linear equations.
 The Elasticity operator permits mesh deformations of greater magnitude and smoother deformed meshes than the Laplacian operator.
 
