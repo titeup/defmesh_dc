@@ -40,9 +40,9 @@ and
 
 \begin{abstract}
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machines.
-Pure MPI codes waste IO, memory and communication. HPC users have to explore new paradigms to make efficient use of the shared resources,
+Pure MPI codes waste IO, memory and communication. HPC users have to explore new paradigms to make an efficient use of the shared resources,
 such as hybrid MPI + threads.
-In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization of an unstructured mesh assembly to sparse matrix on shared memory.
+In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization  on a shared memory system of an unstructured mesh assembly into a sparse matrix.
 Our target application is an industrial CFD application developed by Dassault Aviation.
 Our implementation is based on the versatile Cilk runtime and standard MPI.
 The original Fortran code has been modified with minimum intrusion into the original pure MPI application.
@@ -74,14 +74,14 @@ HPC users have to explore new paradigms.
 
 In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine
 and enhance the data and synchronization locality.
-In this paper, we propose and evaluate, on unstructured problem, a new parallelization strategy  based on the Divide and Conquer, D\&C, principle~\cite{dc_specfem}. Our implementation relies on a task based runtime,
+In this paper, we propose and evaluate a new parallelization strategy  based on the Divide and Conquer, D\&C, principle~\cite{dc_specfem}, on unstructured problem. Our implementation relies on a task based runtime,
 Cilk~\cite{cilk5}. 
 
 We demonstrate the potential of the D\&C approach on the assembly step for Finite Element Methods, FEM.
 This step builds a matrix describing the linear system of equations from the mesh.
 The values in the sparse matrix are the result of the reduction operation on the neighboring elements.
 Due to the irregularity of the structure and the serialization of the reduction, achieving an efficient parallelization is challenging. 
-The state of the art approach for shared memory multicores parallelization is the coloring approaches.
+The state-of-the-art approach for shared memory multicores parallelization is the coloring method.
 Recent works published on parallelizing FEM assembly codes are designed for GPUs~\cite{cecka2011assembly,CPUGPUasm}, but can not be efficiently applied to shared memory systems of multicores.
 
 We apply the D\&C strategy to parallelize the finite element assembly of an industrial fluid dynamics code from Dassault Aviation.
@@ -111,10 +111,10 @@ The paper outline is the following:
 Finite element assembly is common in most scientific applications using finite element methods.
 A simple FEM assembly illustration of a 2D regular mesh is presented in figure~\ref{fig:2Dasm} with the associated sparse matrix.
 The non-zero values of the matrix corresponds to the edges of the mesh. These values are the reduction of neighboring elements contribution. In figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$.
-This matrix is sparse and symmetrical, thus we only store the lower triangular non-zero values.
+This matrix is sparse and symmetrical, thus we only store the non-zero values in the lower triangle.
 In 3D, the number of neighboring elements can be arbitrarily large.
 
-To create parallelism, we must build independent domains to compute in parallel and synchronize with each other to handle shared edges.
+To create parallelism, we must build independent domains to execute in parallel and synchronize them to handle shared edges.
 We consider two different approaches, a state-of-the-art coloring approach and our proposal of D\&C strategy based on a topological recursive bisection.
 \begin{figure}[htp]
  \centering
@@ -256,15 +256,15 @@ Many choices are available to complete FEM assembly in parallel.
 All methods have their advantages and their limitations, depending for instance on the target architecture or the mesh size.
 Recent studies~\cite{cecka2011assembly,CPUGPUasm} investigate different ways to compute FEM assembly on CPUs and GPUs.
 
-A first method presented in~\cite{cecka2011assembly} consists in creating parallelism between all the non-zero entries of the system of equations.
+A first method, presented in~\cite{cecka2011assembly}, consists in creating parallelism between all the non-zero entries of the system of equations.
 This method has a very fine grain thread parallelism and thus can be applied only to GPUs.
-They store, in parallel, the contributions from all elements in the global or local memory and then reduce in parallel these contributions to compute the non-zero values.
+It stores, in parallel, the contributions from all elements in the global or local memory and then reduce in parallel these contributions to compute the non-zero values.
 By arranging the data layout, this method can provide good performance on GPUs.
 However, it suffers from bad load balancing since the number of neighboring elements used to compute non-zero values may vary.
 Due to  the fast growing number of local copies, the approach is limited to relatively small test cases.
-Another variant consists in using one thread for the whole FEM assembly step of one non-zero value at a time. However, this approach leads to redundant computations of element contributions.
+Another variant consists in using one thread for the assembly of one non-zero value at a time. However, this approach leads to redundant computations of element contributions.
 
-A second method~\cite{cecka2011assembly} consists in assembling by mesh element. One thread is responsible for the whole FEM assembly step of one element at a time.
+A second method~\cite{cecka2011assembly} consists in assembling by mesh element. One thread is responsible for the whole assembly of one element at a time.
 It can be applied to both GPUs and CPUs.
 A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in parallel on independent elements.
 This way, each thread has a good load balance per color. The load balancing between colors has no influence since they are serialized.
@@ -335,13 +335,13 @@ We ensure that the numerical results and the number of solver iterations needed 
 
 We present the results both in terms of execution times and of parallel efficiency.
 In all the graphics, the \emph{x} axis represents the number of cores. It corresponds to the number of MPI processes multiplied by the number of threads.
-In figures presenting execution time, the \emph{y} axis corresponds to RDTSC cycles for the FEM assembly and to \texttt{MPI\_Wtime} for the solver.
+In the figures presenting execution time, the \emph{y} axis corresponds to RDTSC cycles for the FEM assembly and to \texttt{MPI\_Wtime} for the solver.
 Concerning efficiency, the \emph{y} axis represents the parallel efficiency given by the following formula:
 $E_{P} = \frac{T_{S}}{P*T_{P}}$, where $E_{P}$ is the efficiency on $P$ processor, $T_{S}$ the sequential time, and $T_{P}$ the time on $P$ processors.
 
 For each figure, we use 1, 4, 8 and 12 MPI processes and 1 to 12 threads, OpenMP or Cilk, while the multiplication of MPI processes per thread is lower or equal to 12.
 This corresponds to the number of cores available. The number of Cilk threads used in the FEM assembly is equal to the number of OpenMP threads.
-We also made the number of METIS partitions and the number of Cilk tasks vary, but we have not observed significant changes in the results.
+We also make the number of METIS partitions and the number of Cilk tasks vary, but we have not observed significant changes in the results.
 According to the Cilk documentations, a minimum of 10 tasks per core is appropriate. Therefore we use 128 Cilk tasks, which is enough to fit in cache.
 We cut MPI domains in 512 partitions to improve locality.
 
@@ -361,7 +361,7 @@ In the Elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{
 Since the amount of work of the FEM assembly step is larger than in the Laplacian variant, the proportion of sequential computation, including the separators, is lower.
 In this case the scalability improves. Furthermore, contrary to the {\tt Ref} version, the data always fits in L2 cache with the {\tt D\&C} version.
 Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
-For any problem size, with {\tt D\&C}, we can increase the number of partitions such that the tasks working-set will always fit in cache.
+For any problem size, with {\tt D\&C}, we can increase the number of partitions so that that the tasks working-set will always fit in cache.
 As it can be seen from figure~\ref{fig:asmCurvesB}, the {\tt Color} version is again the slowest.
 
 These first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
@@ -385,7 +385,7 @@ Moreover, the L3 cache misses occurring in the solver are 23\% lower with {\tt D
 
 \begin{figure}[htp]
  \centering
- \includegraphics[scale=0.3]{Laplacian_solver_time.pdf}
+ \includegraphics[width=0.7\textwidth]{Laplacian_solver_time.pdf}
  \caption{Solver execution time}
  \label{fig:solCurves}
 \end{figure}
