@@ -16,13 +16,11 @@ p <- p + geom_bar(aes(fill=variable),position=position_dodge(), stat="identity")
 p <- p + scale_x_discrete(breaks=c(1,2,4,6,8,12))
 p <- p + labs(x="Cores", y="Seconds")
 p <- p + scale_colour_manual(name="", values = c("black"), labels=c("Ideal Scaling"))
-p <- p + scale_fill_brewer(name="", labels=c("Ref", "D&C"))
+p <- p + scale_fill_manual(name="", values=c("#99CCFF","#338888"), labels=c("Ref", "D&C"))
 p <- p + geom_line(data=tab_ideal, aes(x=as.factor(Cores), y=value, group=1, color=variable), size=1)
 p <- p + geom_point(data=tab_ideal, aes(x=as.factor(Cores), y=value, group=1, color=variable), size=2.2)
 p <- p + theme_bw() + theme(legend.key = element_blank())
 
 pdf(paste(f,".pdf",sep=""), width=5, height=3)
-
 print(p)
-
 dev.off()
