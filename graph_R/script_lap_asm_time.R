@@ -19,7 +19,7 @@ p <- p + geom_bar(aes(fill=variable),position=position_dodge(), stat="identity")
 p <- p + scale_x_discrete(breaks=c(1,2,4,6,8,12))
 p <- p + labs(x="Cores", y="Cycles (10e+10)")
 p <- p + scale_colour_manual(name="", values=c("black"), labels=c("Ideal Scaling"))
-p <- p + scale_fill_brewer(name="", fill=c("#99CCFF","#338888","#005555"),
+p <- p + scale_fill_manual(name="", values=c("#99CCFF","#338888","#005555"),
 						   labels=c("Ref", "D&C", "Coloring"))
 p <- p + geom_line(data=tab_ideal, aes(x=as.factor(Cores), y=value, group=1, color=variable), size=1)
 p <- p + geom_point(data=tab_ideal, aes(x=as.factor(Cores), y=value, group=1, color=variable), size=2.2)
