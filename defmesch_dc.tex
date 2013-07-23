@@ -39,11 +39,11 @@ and
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machines.
 Pure MPI codes waste IO, memory and communication. HPC users have to explore new paradigms to make an efficient use of the shared resources,
 such as hybrid MPI + threads.
-In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization  on a shared memory system of an unstructured mesh assembly into a sparse matrix.
+In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization  on a shared memory system of an unstructured mesh assembly into a sparse matrix. We compare D\&C to the classic MPI domain decomposition and a state-of-the-art coloring approach.
 Our target application is an industrial CFD application developed by Dassault Aviation.
 Our implementation is based on the versatile Cilk runtime and standard MPI.
 The original Fortran code has been modified with minimum intrusion into the original pure MPI application.
-Preliminary results on the finite element assembly of the application are encouraging and show good locality and scalability characteristics.
+Preliminary results on the finite element assembly of the application are encouraging and show good locality and scalability characteristics and already improve the performance by 14\% on a twelve cores   Intel Xeon X5650 NUMA node.
 \end{abstract}
 
 \begin{keyword}
@@ -63,7 +63,7 @@ Current algorithms and runtimes struggle to scale to a large number of cores and
 %%%%%%%%% REVIEWERS ASK TO BE MORE SPECIFIC ????
 %Even heavily optimized application such as GROMACS are below 50\% of the peak performance of state-of-the-art multicore systems~\cite{}.
 %The major effects of
-The increasing number of cores implies a lower memory per core, higher requirement for concurrency (Thread Level Parallelism, Instruction Level Parallelism, vector instructions),
+The increasing number of cores and parallel units implies a lower memory per core, higher requirement for concurrency, 
 higher coherency traffic and higher cost for coherency protocol.
 It results in a severe challenge for performance scalability. The manycore accelerators, such as the Intel Xeon Phi, exacerbate these issues.
 HPC users have to explore new paradigms.
@@ -85,7 +85,7 @@ We apply the D\&C strategy to parallelize the finite element assembly of an indu
 This code computes the effect of mesh deformation to optimize airplane structure.
 Our results outperform the original pure MPI implementation and the coloring method for shared memory parallelization and vectorization.
 
-The paper outline is the following:
+The paper is structured as follows:
 \begin{itemize}
 \item Section 2 presents the finite element assembly in applications using the coloring approach and our D\&C proposal using Cilk and MPI.
 \item Section 3 presents related works on assembly of finite elements and different parallelization strategies.
@@ -248,7 +248,7 @@ In this case, similarly to OpenMP, Cilk provides an easy way to parallelize loop
 By substituting the original {\tt for} with the {\tt cilk\_for} keyword, iterations of the loop are split recursively in several parallel tasks.
 For the DEFMESH application, we observe a better scalability with the {\tt cilk\_for} than with OpenMP {\tt parallel for} pragma.
 
-\section{Related Works}
+\section{Related Work}
 Many choices are available to complete FEM assembly in parallel.
 All methods have their advantages and their limitations, depending for instance on the target architecture or the mesh size.
 Recent studies~\cite{cecka2011assembly,CPUGPUasm} investigate different ways to compute FEM assembly on CPUs and GPUs.
@@ -342,7 +342,7 @@ We also make the number of METIS partitions and the number of Cilk tasks vary, b
 According to the Cilk documentations, a minimum of 10 tasks per core is appropriate. Therefore we use 128 Cilk tasks, which is enough to fit in cache.
 We cut MPI domains in 512 partitions to improve locality.
 
-The application has been compiled with Intel composers 13.1.1 (icc and ifort) and Intel MPI 4.1.0. The OpenMP affinity is set to scatter and Cilk threads are not pinned.
+The application has been compiled with Intel composers 13.1.1 (icc and ifort) and Intel MPI 4.1.0 and Intel Cilk+ runtime. The OpenMP affinity is set to scatter and Cilk threads are not pinned.
 We perform these experiments on twelve cores grouped in two sockets of 6 cores Intel Xeon X5650 clocked at 2.67 GHz.
 Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
