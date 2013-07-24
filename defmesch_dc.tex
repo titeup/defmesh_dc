@@ -3,6 +3,7 @@
 \usepackage{mathptmx}
 \usepackage{graphicx}
 \usepackage{subfigure}
+\usepackage{fancyvrb}
 \usepackage{caption}
 %\usepackage{times}
 %\normalfont
@@ -113,10 +114,10 @@ In 3D, the number of neighboring elements can be arbitrarily large.
 
 To create parallelism, we must build independent domains to execute in parallel and synchronize them to handle shared edges.
 We consider two different approaches, a state-of-the-art coloring approach and our proposal of D\&C strategy based on a topological recursive bisection.
+
 \begin{figure}[htp]
- \centering
- \includegraphics[scale=0.2]{2D_asm.png}
- \includegraphics[scale=0.12]{Matrix_asm.png}
+ \includegraphics[scale=0.18]{2D_asm.png}
+ \includegraphics[scale=0.1]{Matrix_asm.png}
  \caption{2D FEM assembly example}
  \label{fig:2Dasm}
 \end{figure}
@@ -127,28 +128,25 @@ Coloring avoids race conditions by assigning a different color to the elements s
 It was originally targeting vector machines. Indeed elements of a same color do not contribute to the same edges and thus can be executed in parallel.
 Determining a minimal coloring is NP-complete, but creating an efficient coloring with a larger number of colors using heuristic is well-known in literature~\cite{CPUfe}.
 A pseudo-code and a simple 2D coloring example are given in figure~\ref{fig:colApp}.
-~\\~\\~\\
-{
-\begin{minipage}[tp]{0.34\textwidth}
-	%\centering
-	\includegraphics[scale=0.15]{Coloring_approach.png}
-\end{minipage}
-\begin{minipage}[tp]{0.55\textwidth}
- 		\small
- 		\begin{verbatim}
-			NodeToElem = build_node_element (ElemToNode)
-			ElemToElem = build_element_element (NodeToElem)
-			ElemToColor = build_element_color (ElemToElem)
-			ColorToElem = build_color_element (ElemToColor)
 
-			For each color C in colors
-    				Parallel_For all elements E in C
-        					compute_element_contribution (E)
- 		\end{verbatim}
- \end{minipage}	
- \captionof{figure}{\label{fig:colApp} The coloring approach}
- }
- ~\\
+\begin{SaveVerbatim}[]{VerbCol}
+NodeToElem = build_node_element (ElemToNode)
+ElemToElem = build_element_element (NodeToElem)
+ElemToColor = build_element_color (ElemToElem)
+ColorToElem = build_color_element (ElemToColor)
+
+For each color C in colors
+  Parallel_For all elements E in C
+    compute_element_contribution (E)
+\end{SaveVerbatim}
+
+\begin{figure}[htp]
+\subfigure[Coloring approach] {\includegraphics[width=0.3\textwidth]{Coloring_approach.png}}
+\subfigure[Coloring pseudo-code]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbCol}}
+\caption{}
+\label{fig:colApp}
+\end{figure}
+
 %Despite mesh coloring is an efficient approach for vector machines, it is not well suited for current shared memory parallel architectures.
 Sorting the elements by color improves the spatial locality and enables vectorization.
 However, there is only one update per edge and per color. Furthermore each color covers the whole domain.
@@ -188,13 +186,12 @@ Therefore, it is important to use a good partitioner to build equal sub-domains.
 
 In order to increase the data locality, we permute node and element arrays.
 As a result, nodes and elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
-Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighboring sub-domains and associated separator contiguously
-to improve locality between tasks.
+Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighboring sub-domains and associated separator contiguously to improve locality between tasks.
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
+
 \begin{figure}[htp]
- \centering
- \includegraphics[scale=0.17]{DC_approach.png}
- \includegraphics[scale=0.21]{Data_permutations.png}
+ \includegraphics[scale=0.15]{DC_approach.png}
+ \includegraphics[scale=0.23]{Data_permutations.png}
  \caption{D\&C approach}
  \label{fig:DCapp}
 \end{figure}
@@ -208,11 +205,24 @@ The partitioning is topological: cuts are done on edges rather than on geometric
 This allows to only compute sub-domains once for a mesh and it is independent from the rest of the computation.
 Therefore, the partitioning is precomputed and the associated permutation is stored with the mesh.
 During the run, the application needs to apply the precomputed permutation before executing the recursive FEM assembly.
+
+\begin{SaveVerbatim}[]{VerbDC}
+function compute (subdomain) 
+  if Node is not a leaf
+    spawn compute (subdomain.left)
+    compute (subdomain.right)
+    synchronize
+    compute (subdomain.sep)
+  else
+    FEM_assembly (subdomain)
+end    
+\end{SaveVerbatim}
+
 \begin{figure}[htp]
- \centering
- \includegraphics[scale=0.25]{DC_recursion.png}
- \caption{D\&C recursive execution}
- \label{fig:DCrec}
+\subfigure[D\&C approach] {\includegraphics[width=0.52\textwidth]{DC_recursion.png}}
+\subfigure[D\&C pseudo-code]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbDC}}
+\caption{D\&C recursive execution}
+\label{fig:DCrec}
 \end{figure}
 
 \subsubsection{Cilk Implementation}
@@ -221,25 +231,8 @@ It allows users to {\tt spawn} and {\tt sync} many parallel tasks.
 All these tasks are organized in queues and executed by \emph{worker} threads.
 For load balancing, Cilk runtime uses a work-stealing scheduler. When a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
 
-\begin{figure}[htp]
-\small
- \begin{verbatim}
-function compute (sub-domain) 
-    if Node is not a leaf
-        spawn compute (sub-domain.left)
-        compute (sub-domain.right)
-        synchronize
-        compute (sub-domain.sep)
-    else
-        FEM_assembly (sub-domain)
-end        
- \end{verbatim}
- \caption{D\&C assembly pseudo-code}
- \label{fig:DCcode}
-\end{figure}
-
 Once the recursive task tree as shown in figure~\ref{fig:DCrec} is constructed, the Cilk implementation is straightforward.
-Following the pseudo-code in figure~\ref{fig:DCcode}, left and right sub-domains of each node are split in two tasks and executed in parallel, as long as the recursion has not reached a leaf (domain size condition).
+Following the pseudo-code in figure~\ref{fig:DCrec}, left and right sub-domains of each node are split in two tasks and executed in parallel, as long as the recursion has not reached a leaf (domain size condition).
 These tasks have to be completed before launching the separator computation. 
 When the recursion reaches the leaves, the original sequential FEM assembly routine is executed on their sub-domains.
 
@@ -305,13 +298,13 @@ The final step is the update of mesh coordinates using previously computed defor
 
 We performed our experiments on an unstructured mesh from Dassault Aviation, called EIB and illustrated in the figure~\ref{fig:reservoir}.
 It is composed of 6 346 108 elements and 1 079 758 nodes and it represents the displacements of a fuel tank along an airplane fuselage.
+
 \begin{figure}[htp]
- \centering
- \subfigure[]{\label{fig:EIB3D}\includegraphics[width=0.32\textwidth]{reservoir_3D.png}}
- \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.32\textwidth]{reservoir_projection.png}}\\
- \subfigure[]{\label{fig:EIB_high}\includegraphics[width=0.28\textwidth]{reservoir_haut.png}}
- \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.28\textwidth]{reservoir_milieu.png}}
- \subfigure[]{\label{fig:EIB_bottom}\includegraphics[width=0.28\textwidth]{reservoir_bas.png}}
+ \subfigure[]{\label{fig:EIB3D}\includegraphics[width=0.28\textwidth]{reservoir_3D.png}}
+ \subfigure[]{\label{fig:EIB_proj}\includegraphics[width=0.28\textwidth]{reservoir_projection.png}}\\
+ \subfigure[]{\label{fig:EIB_high}\includegraphics[width=0.25\textwidth]{reservoir_haut.png}}
+ \subfigure[]{\label{fig:EIB_middle}\includegraphics[width=0.25\textwidth]{reservoir_milieu.png}}
+ \subfigure[]{\label{fig:EIB_bottom}\includegraphics[width=0.25\textwidth]{reservoir_bas.png}}
  \caption{EIB fuel tank position optimization test case}
  \label{fig:reservoir}
 \end{figure}
@@ -347,6 +340,13 @@ We perform these experiments on twelve cores grouped in two sockets of 6 cores I
 Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
 \subsection{FEM Assembly results}
+
+\begin{figure}[htp]
+ \subfigure[All elasticity versions on 12 cores]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
+ \caption{}
+ \label{fig:12Cores}
+\end{figure}
+
 As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the {\tt Color} version is the slowest one.
 The {\tt D\&C} version is very close to the {\tt Ref} version, using pure MPI, but it starts to decrease after 6 cores. 
 This is due to the remaining sequential part of the {\tt D\&C} code and the low intensity work in the Laplacian version.
@@ -364,7 +364,6 @@ As it can be seen from figure~\ref{fig:asmCurvesB}, the {\tt Color} version is a
 These first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
 
 \begin{figure}[htp]
- \centering
  \subfigure[Laplacian execution time]{\label{fig:asmCurvesA}\includegraphics[width=0.43\textwidth]{graph_R/Laplacian_asm_time.pdf}}
  \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[width=0.55\textwidth]{graph_R/Laplacian_asm_efficiency.pdf}}
  \subfigure[Elasticity execution time]{\label{fig:asmCurvesB}\includegraphics[width=0.43\textwidth]{graph_R/Elasticity_asm_time.pdf}}
@@ -381,9 +380,8 @@ This result shows that the initial data already expose good locality.
 Moreover, the L3 cache misses occurring in the solver are 23\% lower with {\tt D\&C} than with {\tt Ref}.
 
 \begin{figure}[htp]
- \centering
  \subfigure[D\&C solver speedup over Ref]{\includegraphics[width=0.43\textwidth]{graph_R/Laplacian_solver_time_SU.pdf}}
-  \subfigure[Solver execution time]{\includegraphics[width=0.43\textwidth]{graph_R/Laplacian_solver_time.pdf}}
+ \subfigure[Solver execution time]{\includegraphics[width=0.43\textwidth]{graph_R/Laplacian_solver_time.pdf}}
  \caption{Solver execution time and speed-up using D\&C}
  \label{fig:solCurves}
 \end{figure}
