@@ -190,7 +190,7 @@ Secondly, since the tasks distribution is following the recursive domain decompo
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
 
 \begin{figure}[htp]
- \includegraphics[scale=0.15]{DC_approach.png}
+ \includegraphics[scale=0.14]{DC_approach.png}
  \includegraphics[scale=0.23]{Data_permutations.png}
  \caption{D\&C approach}
  \label{fig:DCapp}
@@ -311,11 +311,11 @@ It is composed of 6 346 108 elements and 1 079 758 nodes and it represents the d
 
 \subsection{Experimental Setup}
 In the following experiments, we compare three versions of the FEM assembly step from the DEFMESH application:
-the original one from Dassault Aviation called {\tt Ref}, the new Divide \& Conquer version called {\tt D\&C}, and the coloring version called {\tt Color}.
+the original one from Dassault Aviation called {\tt Ref}, the new Divide \& Conquer version called {\tt D\&C}, and the coloring version called {\tt Coloring}.
 The {\tt Ref} version uses MPI between the different blocks of the mesh and OpenMP to parallelize the sparse matrix-vector loop of the solver.
 The {\tt D\&C} version uses the recursive partitioning of each block of the mesh.
 In addition to MPI and OpenMP, this version also exploits a Cilk task parallelism in the FEM assembly.
-The {\tt Color} version exploits OpenMP parallelism between all the elements of a same color in the FEM assembly.
+The {\tt Coloring} version exploits OpenMP parallelism between all the elements of a same color in the FEM assembly.
 
 For each of these versions, we consider the Laplacian and the Elastic variants of DEFMESH.
 For both of them, the application needs 50 steps and the measures correspond to the average time of one iteration.
@@ -347,7 +347,7 @@ Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 1
  \label{fig:12Cores}
 \end{figure}
 
-As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the {\tt Color} version is the slowest one.
+As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the {\tt Coloring} version is the slowest one.
 The {\tt D\&C} version is very close to the {\tt Ref} version, using pure MPI, but it starts to decrease after 6 cores. 
 This is due to the remaining sequential part of the {\tt D\&C} code and the low intensity work in the Laplacian version.
 Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
@@ -360,6 +360,7 @@ In this case the scalability improves. Furthermore, contrary to the {\tt Ref} ve
 Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
 For any problem size, with {\tt D\&C}, we can increase the number of partitions so that the tasks working-set will always fit in cache.
 As it can be seen from figure~\ref{fig:asmCurvesB}, the {\tt Color} version is again the slowest.
+
 
 These first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
 
