@@ -112,7 +112,7 @@ The non-zero values of the matrix corresponds to the edges of the mesh. These va
 This matrix is sparse and symmetrical, thus we only store the non-zero values in the lower triangle.
 In 3D, the number of neighboring elements can be arbitrarily large.
 
-To create parallelism, we must build independent domains to execute in parallel and synchronize them to handle shared edges.
+To create parallelism, we must build independent domains to be executed in parallel. We then synchronize them to handle shared edges.
 We consider two different approaches, a state-of-the-art coloring approach and our proposal of D\&C strategy based on a topological recursive bisection.
 
 \begin{figure}[htp]
@@ -254,7 +254,7 @@ However, it suffers from bad load balancing since the number of neighboring elem
 Due to  the fast growing number of local copies, the approach is limited to relatively small test cases.
 Another variant consists in using one thread for the assembly of one non-zero value at a time. However, this approach leads to redundant computations of element contributions.
 
-A second method~\cite{cecka2011assembly} consists in assembling by mesh element. One thread is responsible for the whole assembly of one element at a time.
+A second method~\cite{cecka2011assembly} consists in assembling by mesh element. One thread is responsible for the contribution of one element.
 It can be applied to both GPUs and CPUs.
 A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in parallel on independent elements.
 This way, each thread has a good load balance per color. The load balancing between colors has no influence since they are serialized.
@@ -262,8 +262,8 @@ However, bad data locality can cause poor performance as explained is section~\r
 
 Divide and Conquer paradigm and recursion in general have already been explored extensively for parallel algorithm~\cite{div}.
 M. Martone et al.~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
-Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, according to authors results, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm}.
-Dongarra et al.~\cite{Dongarra} evaluate an asynchronous task based parallelism approach for well-known factorization algorithms and compared it to traditional fork-join approach.
+Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm} according to authors results.
+Dongarra et al.~\cite{Dongarra} evaluate an asynchronous task based parallelism approach for well-known factorization algorithms and compare it to traditional fork-join approach.
 A recent investigation on hybrid programming integrating task based parallelism in MPI processes have been made~\cite{MPI_task}.
 The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to pure MPI.
 However, recursive and D\&C approaches are rarely employed on sparse algebra and unstructured problems because of their irregularity.
@@ -358,7 +358,7 @@ In the Elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{
 Since the amount of work of the FEM assembly step is larger than in the Laplacian variant, the proportion of sequential computation, including the separators, is lower.
 In this case the scalability improves. Furthermore, contrary to the {\tt Ref} version, the data always fits in L2 cache with the {\tt D\&C} version.
 Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
-For any problem size, with {\tt D\&C}, we can increase the number of partitions so that that the tasks working-set will always fit in cache.
+For any problem size, with {\tt D\&C}, we can increase the number of partitions so that the tasks working-set will always fit in cache.
 As it can be seen from figure~\ref{fig:asmCurvesB}, the {\tt Color} version is again the slowest.
 
 These first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
