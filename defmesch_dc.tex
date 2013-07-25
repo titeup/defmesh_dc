@@ -38,13 +38,13 @@ and
 
 \begin{abstract}
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machines.
-Pure MPI codes waste IO, memory and communication. HPC users have to explore new paradigms to make an efficient use of the shared resources,
-such as hybrid MPI + threads.
-In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization  on a shared memory system of an unstructured mesh assembly into a sparse matrix. We compare D\&C to the classic MPI domain decomposition and a state-of-the-art coloring approach.
+Pure MPI codes waste IO, memory and communication. HPC users have to explore new paradigms to make an efficient use of the shared resources, such as hybrid MPI + threads.
+In this paper we propose and evaluate a Divide \& Conquer, D\&C, approach for the parallelization  on a shared memory system of an unstructured mesh assembly into a sparse matrix.
+We compare D\&C to the classic MPI domain decomposition and a state-of-the-art coloring approach.
 Our target application is an industrial CFD application developed by Dassault Aviation.
 Our implementation is based on the versatile Cilk runtime and standard MPI.
 The original Fortran code has been modified with minimum intrusion into the original pure MPI application.
-Preliminary results on the finite element assembly of the application are encouraging and show good locality and scalability characteristics and already improve the performance by 14\% on a twelve cores   Intel Xeon X5650 NUMA node.
+Preliminary results on the finite element assembly of the application are encouraging and show good locality and scalability characteristics and already improve the performance by 14\% on a twelve cores Intel Xeon X5650 NUMA node.
 \end{abstract}
 
 \begin{keyword}
@@ -342,8 +342,9 @@ Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 1
 \subsection{FEM Assembly results}
 
 \begin{figure}[htp]
- \subfigure[All elasticity versions on 12 cores]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
- \caption{}
+ \subfigure[Execution time]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
+ \subfigure[L3 cache misses]{\label{fig:12CoresB}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_L3TCM.pdf}}
+ \caption{Comparison between all Elasticity versions on 12 cores}
  \label{fig:12Cores}
 \end{figure}
 
@@ -360,7 +361,6 @@ In this case the scalability improves. Furthermore, contrary to the {\tt Ref} ve
 Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
 For any problem size, with {\tt D\&C}, we can increase the number of partitions so that the tasks working-set will always fit in cache.
 As it can be seen from figure~\ref{fig:asmCurvesB}, the {\tt Color} version is again the slowest.
-
 
 These first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
 
