@@ -192,8 +192,8 @@ These permutations are applied to all MPI domains, therefore we renumber the nod
 \begin{figure}[htp]
  \includegraphics[scale=0.14]{DC_approach.png}
  \includegraphics[scale=0.23]{Data_permutations.png}
- \caption{D\&C approach}
- \label{fig:DCapp}
+ \caption{ \label{fig:DCapp}The D\&C approach. The domains is splitted in two parts, left and right. Since they share no edges, they can be treated in parallel. The edges on the cut form a separator part and it must be treated after left and right. For each cut, we reorder the elements in left, right and separator parts.  }
+
 \end{figure}
 
 The proposed approach is then applied recursively to all sub-domains, providing a large amount of parallelism.
@@ -219,9 +219,9 @@ end
 \end{SaveVerbatim}
 
 \begin{figure}[htp]
-\subfigure[D\&C approach] {\includegraphics[width=0.52\textwidth]{DC_recursion.png}}
-\subfigure[D\&C pseudo-code]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbDC}}
-\caption{D\&C recursive execution}
+\subfigure[] {\includegraphics[width=0.52\textwidth]{DC_recursion.png}}
+\subfigure[]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbDC}}
+\caption{D\&C recursive execution. The process of figure~\ref{fig:DCapp} is repeated recursively.}
 \label{fig:DCrec}
 \end{figure}
 
