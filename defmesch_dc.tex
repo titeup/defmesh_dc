@@ -59,12 +59,11 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, FEM Assembly
 %Positionment : code MPI compare to hybrid.\\
 %Problem on FEM : assembling, parallelization with shared memory non trivial.\\
 %Assembling on multicore, not on GPU (most of papers are for GPUs)\\\\
-
-Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency. 
 %%%%%%%%% REVIEWERS ASK TO BE MORE SPECIFIC ????
 %Even heavily optimized application such as GROMACS are below 50\% of the peak performance of state-of-the-art multicore systems~\cite{}.
-The increasing number of cores and parallel units implies a lower memory per core, higher requirement for concurrency, 
-higher coherency traffic and higher cost for coherency protocol.
+
+Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency. 
+The increasing number of cores and parallel units implies a lower memory per core, higher requirement for concurrency, higher coherency traffic and higher cost for coherency protocol.
 It results in a severe challenge for performance scalability. The manycore accelerators, such as the Intel Xeon Phi, exacerbate these issues.
 HPC users have to explore new paradigms.
 % to make an efficient usage of the new resources. 
@@ -115,10 +114,9 @@ To create parallelism, we must build independent domains to be executed in paral
 We consider two different approaches, a state-of-the-art coloring approach and our proposal of D\&C strategy based on a topological recursive bisection.
 
 \begin{figure}[htp]
- \includegraphics[scale=0.18]{2D_asm.png}
- \includegraphics[scale=0.1]{Matrix_asm.png}
- \caption{A 2D FEM assembly example. The non-zero values in the matrix correspond to the edges of the mesh. The value of an edge is the reduction of the neighboring elements contribution.}
- \label{fig:2Dasm}
+\includegraphics[scale=0.6]{FEM_ass.pdf}
+\caption{A 2D FEM assembly example. The non-zero values in the matrix correspond to the edges of the mesh. The value of an edge is the reduction of the neighboring elements contribution.}
+\label{fig:2Dasm}
 \end{figure}
 
 \subsection{Coloring}
