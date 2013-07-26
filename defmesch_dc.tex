@@ -118,7 +118,7 @@ We consider two different approaches, a state-of-the-art coloring approach and o
 \begin{figure}[htp]
  \includegraphics[scale=0.18]{2D_asm.png}
  \includegraphics[scale=0.1]{Matrix_asm.png}
- \caption{2D FEM assembly example}
+ \caption{A 2D FEM assembly example. The non-zero values in the matrix correspond to the edges of the mesh. The value of an edge is the reduction of the neighboring element contribution.}
  \label{fig:2Dasm}
 \end{figure}
 
@@ -141,9 +141,9 @@ For each color C in colors
 \end{SaveVerbatim}
 
 \begin{figure}[htp]
-\subfigure[Coloring approach] {\includegraphics[width=0.3\textwidth]{Coloring_approach.png}}
-\subfigure[Coloring pseudo-code]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbCol}}
-\caption{}
+\subfigure[\label{fig:example_coloring} Example of a 2D coloring. In 2D, two colors are enough.] {\includegraphics[width=0.3\textwidth]{Coloring_approach.png}}
+\subfigure[\label{fig:algo_coloring} Pseudo code for coloring and assembling. ]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbCol}}
+\caption{The state-of-the-art coloring approach for FEM assembly. }
 \label{fig:colApp}
 \end{figure}
 
