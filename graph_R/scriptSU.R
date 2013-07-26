@@ -14,6 +14,6 @@ p <- p + labs(x="Cores", y="SU D&C/Ref")
 p <- p + geom_line(aes(x=as.factor(Cores), y=1, group=1, color="red"))
 p <- p + theme_bw() + theme(legend.position="none")
 
-pdf(paste(f,".pdf",sep=""), width=5, height=3)
+pdf(paste(f,".pdf",sep=""), width=4, height=2.2)
 print(p)
 dev.off()
