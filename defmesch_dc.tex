@@ -185,7 +185,6 @@ As a result, nodes and elements can be consecutive in memory inside each sub-dom
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighboring sub-domains and associated separator contiguously to improve locality between tasks.
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
 
-
 %\begin{figure}[htp]
 % \includegraphics[width=\textwidth]{dc_app.pdf}
 % %\includegraphics[scale=0.23]{Data_permutations.png}
@@ -216,12 +215,11 @@ end
 \end{SaveVerbatim}
 
 \begin{figure}[htp]
-\subfigure[ \label{fig:DCapp}] { \includegraphics[width=0.7\textwidth]{dc_app.pdf}}
-
-\subfigure[] {\includegraphics[width=0.49\textwidth]{dc_rec.pdf}}
-\subfigure[]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbDC}}
-\caption{D\&C recursive execution. The left and right parts can be treated in parallel. The edges on the cut form the separator to treat after left and right. For each cut, we reorder the elements in left, right and separator parts.}
-\label{fig:DCrec}
+\subfigure[\label{fig:DCapp}] {\includegraphics[width=0.7\textwidth]{dc_app.pdf}}
+\subfigure[\label{fig:DCrec}] {\includegraphics[width=0.49\textwidth]{dc_rec.pdf}}
+\subfigure[\label{fig:DCpc}]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbDC}}
+\caption{D\&C recursive execution. The left and right parts can be treated in parallel. The edges on the cut form a separator to treat after left and right parts.
+For each cut, we reorder the elements in left, right and separator parts.}
 \end{figure}
 
 \subsubsection{Cilk Implementation}
@@ -231,7 +229,7 @@ All these tasks are organized in queues and executed by \emph{worker} threads.
 For load balancing, Cilk runtime uses a work-stealing scheduler. When a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
 
 Once the recursive task tree as shown in figure~\ref{fig:DCrec} is constructed, the Cilk implementation is straightforward.
-Following the pseudo-code in figure~\ref{fig:DCrec}, left and right sub-domains of each node are split in two tasks and executed in parallel, as long as the recursion has not reached a leaf (domain size condition).
+Following the pseudo-code in figure~\ref{fig:DCpc}, left and right sub-domains of each node are split in two tasks and executed in parallel, as long as the recursion has not reached a leaf (domain size condition).
 These tasks have to be completed before launching the separator computation. 
 When the recursion reaches the leaves, the original sequential FEM assembly routine is executed on their sub-domains.
 
@@ -339,30 +337,6 @@ We perform these experiments on twelve cores grouped in two sockets of 6 cores I
 Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
 \subsection{FEM Assembly results}
-
-\begin{figure}[htp]
- \subfigure[Execution time]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
- \subfigure[L3 cache misses]{\label{fig:12CoresB}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_L3TCM.pdf}}
- \caption{Comparison between all Elasticity versions on 12 cores}
- \label{fig:12Cores}
-\end{figure}
-
-As we can see in figures~\ref{fig:asmCurvesA} and~\ref{fig:asmCurvesC}, the {\tt Coloring} version is the slowest one.
-The {\tt D\&C} version is very close to the {\tt Ref} version, using pure MPI, but it starts to decrease after 6 cores. 
-This is due to the remaining sequential part of the {\tt D\&C} code and the low intensity work in the Laplacian version.
-Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
-According to the Amdahl's law, by increasing the number of cores, the proportion of the sequential part increases.
-This is confirmed on figure~\ref{fig:asmCurvesC} showing the parallel efficiency.
-
-In the Elasticity variant, illustrated in figures~\ref{fig:asmCurvesB} and~\ref{fig:asmCurvesD}, the {\tt D\&C} version becomes equivalent to {\tt Ref}.
-Since the amount of work of the FEM assembly step is larger than in the Laplacian variant, the proportion of sequential computation, including the separators, is lower.
-In this case the scalability improves. Furthermore, contrary to the {\tt Ref} version, the data always fits in L2 cache with the {\tt D\&C} version.
-Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
-For any problem size, with {\tt D\&C}, we can increase the number of partitions so that the tasks working-set will always fit in cache.
-As it can be seen from figure~\ref{fig:asmCurvesB}, the {\tt Color} version is again the slowest.
-
-These first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
-
 \begin{figure}[htp]
  \subfigure[Laplacian execution time]{\label{fig:asmCurvesA}\includegraphics[width=0.43\textwidth]{graph_R/Laplacian_asm_time.pdf}}
  \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesB}\includegraphics[width=0.55\textwidth]{graph_R/Laplacian_asm_efficiency.pdf}}
@@ -370,6 +344,28 @@ These first results are encouraging and we can reasonably expect to match the id
  \subfigure[Elasticity parallel efficiency]{\label{fig:asmCurvesD}\includegraphics[width=0.55\textwidth]{graph_R/Elasticity_asm_efficiency.pdf}}
  \caption{FEM assembly time and efficiency measurement for the Laplacian and Elasticity version. }
  \label{fig:asmCurves}
+\end{figure}
+
+As we can see in figure~\ref{fig:asmCurvesA} representing the Laplacian variant, the {\tt D\&C} version is very close to the {\tt Ref} version, using pure MPI, but it starts to decrease after 6 cores.
+This is due to the remaining sequential part of the {\tt D\&C} code and the low intensity work in the Laplacian version.
+Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
+According to the Amdahl's law, by increasing the number of cores, the proportion of the sequential part increases.
+This is confirmed on figure~\ref{fig:asmCurvesB} showing the parallel efficiency.
+
+In the Elasticity variant, illustrated in figures~\ref{fig:asmCurvesC} and~\ref{fig:asmCurvesD}, the {\tt D\&C} version becomes equivalent to {\tt Ref}.
+Since the amount of work of the FEM assembly step is larger than in the Laplacian variant, the proportion of sequential computation, including the separators, is lower. In this case the scalability improves.
+Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
+For any problem size, with {\tt D\&C}, we can increase the number of partitions so that the tasks working-set will always fit in cache.
+When focusing on twelve cores, see figure~\ref{fig:12CoresA}, all combinations of the {\tt D\&C} version are faster than the {\tt Ref} version.
+In all variants, the {\tt Coloring} version is the slowest one. These results are mainly link to the cache utilization, illustrated in figure~\ref{fig:12CoresB}.
+
+These first results are encouraging and we can reasonably expect to match the ideal scaling on big enough test cases when the separators will be parallelized.
+
+\begin{figure}[htp]
+ \subfigure[$MPIxThreads (Version)$]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
+ \subfigure[$MPIxThreads (Version)$]{\label{fig:12CoresB}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_L3TCM.pdf}}
+ \caption{Comparison between all Elasticity versions on 12 cores. Execution time (a). L3 cache misses (b)}
+ \label{fig:12Cores}
 \end{figure}
 
 \subsection{Solver}
