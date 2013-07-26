@@ -118,7 +118,7 @@ We consider two different approaches, a state-of-the-art coloring approach and o
 \begin{figure}[htp]
  \includegraphics[scale=0.6]{FEM_ass.pdf}
 % \includegraphics[scale=0.1]{Matrix_asm.png}
- \caption{A 2D FEM assembly example. The non-zero values in the matrix correspond to the edges of the mesh. The value of an edge is the reduction of the neighboring element contribution.}
+ \caption{A 2D FEM assembly example. The matrix non-zero values correspond to the edges of the mesh. }
  \label{fig:2Dasm}
 \end{figure}
 
@@ -141,7 +141,7 @@ For each color C in colors
 \end{SaveVerbatim}
 
 \begin{figure}[htp]
-\subfigure[\label{fig:example_coloring} Example of a 2D coloring. In 2D, two colors are enough.] {\includegraphics[width=0.3\textwidth]{color.pdf}}
+\subfigure[\label{fig:example_coloring} Example of a 2D coloring.] {\includegraphics[width=0.3\textwidth]{color.pdf}}
 \subfigure[\label{fig:algo_coloring} Pseudo code for coloring and assembling. ]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbCol}}
 \caption{The state-of-the-art coloring approach for FEM assembly. }
 \label{fig:colApp}
@@ -192,7 +192,7 @@ These permutations are applied to all MPI domains, therefore we renumber the nod
 \begin{figure}[htp]
  \includegraphics[width=\textwidth]{dc_app.pdf}
  %\includegraphics[scale=0.23]{Data_permutations.png}
- \caption{ \label{fig:DCapp}The D\&C approach. The domains is splitted in two parts, left and right. Since they share no edges, they can be treated in parallel. The edges on the cut form a separator part and it must be treated after left and right. For each cut, we reorder the elements in left, right and separator parts.  }
+ \caption{ \label{fig:DCapp}The D\&C approach. The left and right parts can be treated in parallel. The edges on the cut form the separator to treat after left and right. For each cut, we reorder the elements in left, right and separator parts.  }
 
 \end{figure}
 
@@ -369,7 +369,7 @@ These first results are encouraging and we can reasonably expect to match the id
  \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[width=0.55\textwidth]{graph_R/Laplacian_asm_efficiency.pdf}}
  \subfigure[Elasticity execution time]{\label{fig:asmCurvesB}\includegraphics[width=0.43\textwidth]{graph_R/Elasticity_asm_time.pdf}}
  \subfigure[Elasticity parallel efficiency]{\label{fig:asmCurvesD}\includegraphics[width=0.55\textwidth]{graph_R/Elasticity_asm_efficiency.pdf}}
- \caption{Assembly measures}
+ \caption{FEM assembly time and efficiency measurement for the Laplacian and Elasticity version. }
  \label{fig:asmCurves}
 \end{figure}
 
