@@ -356,8 +356,8 @@ In the Elasticity variant, illustrated in figures~\ref{fig:asmCurvesC} and~\ref{
 Since the amount of work of the FEM assembly step is larger than in the Laplacian variant, the proportion of sequential computation, including the separators, is lower. In this case the scalability improves.
 Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
 For any problem size, with {\tt D\&C}, we can increase the number of partitions so that the tasks working-set will always fit in cache.
-When focusing on twelve cores, see figure~\ref{fig:12CoresA}, all combinations of the {\tt D\&C} version are faster than the {\tt Ref} version.
-In all variants, the {\tt Coloring} version is the slowest one. These results are mainly link to the cache utilization, illustrated in figure~\ref{fig:12CoresB}.
+When focusing on twelve cores, see figure~\ref{fig:12CoresA}, all combinations of the {\tt D\&C} version are faster than {\tt Ref}.
+In all variants, the {\tt Coloring} version is the slowest one. This is mainly due to the cache utilization, illustrated in figure~\ref{fig:12CoresB}.
 
 These first results are encouraging and we can reasonably expect to match the ideal scaling on big enough test cases when the separators will be parallelized.
 
