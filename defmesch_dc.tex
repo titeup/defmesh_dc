@@ -69,7 +69,7 @@ HPC users have to explore new paradigms.
 % to make an efficient usage of the new resources. 
 
 In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine and enhance the data and synchronization locality.
-In this paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle~\cite{dc_specfem}, on unstructured problem.
+In this paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle~\cite{dc_specfem} on unstructured problem.
 Our implementation relies on a task based runtime, Cilk~\cite{cilk5}. 
 
 We demonstrate the potential of the D\&C approach on the assembly step for Finite Element Methods, FEM.
@@ -321,7 +321,7 @@ We also measure the solver to estimate the impact of the D\&C data permutations 
 We ensure that the numerical results and the number of solver iterations needed to converge are stable in all versions.
 
 We present the results both in terms of execution times and of parallel efficiency.
-In all the graphics, the \emph{x} axis represents the number of cores. It corresponds to the number of MPI processes multiplied by the number of threads.
+When the  \emph{x} axis represents the number of cores, it corresponds to the number of MPI processes multiplied by the number of threads.
 In the figures presenting execution time, the \emph{y} axis corresponds to RDTSC cycles for the FEM assembly and to \texttt{MPI\_Wtime} for the solver.
 Concerning efficiency, the \emph{y} axis represents the parallel efficiency given by the following formula:
 $E_{P} = \frac{T_{S}}{P*T_{P}}$, where $E_{P}$ is the efficiency on $P$ processor, $T_{S}$ the sequential time, and $T_{P}$ the time on $P$ processors.
@@ -357,7 +357,7 @@ Since the amount of work of the FEM assembly step is larger than in the Laplacia
 Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
 For any problem size, with {\tt D\&C}, we can increase the number of partitions so that the tasks working-set will always fit in cache.
 When focusing on twelve cores, see figure~\ref{fig:12CoresA}, all combinations of the {\tt D\&C} version are faster than {\tt Ref}.
-In all variants, the {\tt Coloring} version is the slowest one. This is mainly due to the cache utilization, illustrated in figure~\ref{fig:12CoresB}.
+In all variants, the {\tt Coloring} version is the slowest one. This is probably due to a bad cache utilization as illustrated in figure~\ref{fig:12CoresB}.
 
 These first results are encouraging and we can reasonably expect to match the ideal scaling on big enough test cases when the separators will be parallelized.
 
@@ -369,7 +369,8 @@ These first results are encouraging and we can reasonably expect to match the id
 \end{figure}
 
 \subsection{Solver}
-We did not modify the solver part. However, we observe in figure~\ref{fig:solCurves} approximately 6\% speed-up for the {\tt D\&C} version compared to the {\tt Ref} version.
+
+We did not modify the solver part. However, we observe in figure~\ref{fig:solCurves}  an average 6\% speed- up for the  {\tt D\&C} version compared to the {\tt Ref}  version. The maximum speed-up is 10,2\% on twelve cores. 
 This improvement is due to the better data locality enabled by the permutations explained in section~\ref{sec:DCrec}.
 To show the impact of locality, we randomly permute the data and observe a significant degradation of performance.
 This result shows that the initial data already expose good locality.
