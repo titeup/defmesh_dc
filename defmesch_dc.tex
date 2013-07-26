@@ -189,12 +189,12 @@ As a result, nodes and elements can be consecutive in memory inside each sub-dom
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighboring sub-domains and associated separator contiguously to improve locality between tasks.
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
 
-\begin{figure}[htp]
- \includegraphics[width=\textwidth]{dc_app.pdf}
- %\includegraphics[scale=0.23]{Data_permutations.png}
- \caption{ \label{fig:DCapp}The D\&C approach. The left and right parts can be treated in parallel. The edges on the cut form the separator to treat after left and right. For each cut, we reorder the elements in left, right and separator parts.  }
-
-\end{figure}
+%\begin{figure}[htp]
+% \includegraphics[width=\textwidth]{dc_app.pdf}
+% %\includegraphics[scale=0.23]{Data_permutations.png}
+% \caption{ \label{fig:DCapp}The D\&C approach. The left and right parts can be treated in parallel. The edges on the cut form the separator to treat after left and right. For each cut, we reorder the elements in left, right and separator parts.  }
+%
+%\end{figure}
 
 The proposed approach is then applied recursively to all sub-domains, providing a large amount of parallelism.
 As illustrated in figure~\ref{fig:DCrec}, each leaf of the resulting tree is associated with an independent Cilk task which executes the FEM assembly process on its sub-domain.
@@ -219,9 +219,11 @@ end
 \end{SaveVerbatim}
 
 \begin{figure}[htp]
+\subfigure[ \label{fig:DCapp}] { \includegraphics[width=0.7\textwidth]{dc_app.pdf}}
+
 \subfigure[] {\includegraphics[width=0.49\textwidth]{dc_rec.pdf}}
 \subfigure[]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbDC}}
-\caption{D\&C recursive execution. The process of figure~\ref{fig:DCapp} is repeated recursively.}
+\caption{D\&C recursive execution. The left and right parts can be treated in parallel. The edges on the cut form the separator to treat after left and right. For each cut, we reorder the elements in left, right and separator parts.}
 \label{fig:DCrec}
 \end{figure}
 
