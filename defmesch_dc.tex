@@ -68,10 +68,9 @@ It results in a severe challenge for performance scalability. The manycore accel
 HPC users have to explore new paradigms.
 % to make an efficient usage of the new resources. 
 
-In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine
-and enhance the data and synchronization locality.
-In this paper, we propose and evaluate a new parallelization strategy  based on the Divide and Conquer, D\&C, principle~\cite{dc_specfem}, on unstructured problem. Our implementation relies on a task based runtime,
-Cilk~\cite{cilk5}. 
+In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine and enhance the data and synchronization locality.
+In this paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle~\cite{dc_specfem}, on unstructured problem.
+Our implementation relies on a task based runtime, Cilk~\cite{cilk5}. 
 
 We demonstrate the potential of the D\&C approach on the assembly step for Finite Element Methods, FEM.
 This step builds a matrix describing the linear system of equations from the mesh.
@@ -114,9 +113,9 @@ To create parallelism, we must build independent domains to be executed in paral
 We consider two different approaches, a state-of-the-art coloring approach and our proposal of D\&C strategy based on a topological recursive bisection.
 
 \begin{figure}[htp]
-\includegraphics[scale=0.6]{FEM_ass.pdf}
-\caption{A 2D FEM assembly example. The non-zero values in the matrix correspond to the edges of the mesh. The value of an edge is the reduction of the neighboring elements contribution.}
-\label{fig:2Dasm}
+ \includegraphics[scale=0.6]{FEM_ass.pdf}
+ \caption{A 2D FEM assembly example. The matrix non-zero values correspond to the edges of the mesh.}
+ \label{fig:2Dasm}
 \end{figure}
 
 \subsection{Coloring}
@@ -138,7 +137,7 @@ For each color C in colors
 \end{SaveVerbatim}
 
 \begin{figure}[htp]
-\subfigure[\label{fig:example_coloring} Example of a 2D coloring. In 2D, two colors are enough.] {\includegraphics[width=0.3\textwidth]{color.pdf}}
+\subfigure[\label{fig:example_coloring} Example of a 2D coloring.] {\includegraphics[width=0.3\textwidth]{color.pdf}}
 \subfigure[\label{fig:algo_coloring} Pseudo code for coloring and assembling. ]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbCol}}
 \caption{The state-of-the-art coloring approach for FEM assembly. }
 \label{fig:colApp}
@@ -187,9 +186,9 @@ Secondly, since the tasks distribution is following the recursive domain decompo
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
 
 \begin{figure}[htp]
-\includegraphics[width=\textwidth]{dc_app.pdf}
-\caption{\label{fig:DCapp}The D\&C approach. The domain is splitted in two parts, left and right. Since they share no edges, they can be treated in parallel.
-The edges on the cut form a separator which must be treated after left and right parts. For each cut, we reorder the elements in left, right and separator parts.}
+ \includegraphics[width=\textwidth]{dc_app.pdf}
+ \caption{\label{fig:DCapp}The D\&C approach. The left and right parts can be treated in parallel. The edges on the cut form the separator to treat after left and right parts.
+ For each cut, we reorder the elements in left, right and separator parts.}
 \end{figure}
 
 The proposed approach is then applied recursively to all sub-domains, providing a large amount of parallelism.
@@ -365,7 +364,7 @@ These first results are encouraging and we can reasonably expect to match the id
  \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesC}\includegraphics[width=0.55\textwidth]{graph_R/Laplacian_asm_efficiency.pdf}}
  \subfigure[Elasticity execution time]{\label{fig:asmCurvesB}\includegraphics[width=0.43\textwidth]{graph_R/Elasticity_asm_time.pdf}}
  \subfigure[Elasticity parallel efficiency]{\label{fig:asmCurvesD}\includegraphics[width=0.55\textwidth]{graph_R/Elasticity_asm_efficiency.pdf}}
- \caption{Assembly measures}
+ \caption{FEM assembly time and efficiency measurement for the Laplacian and Elasticity version. }
  \label{fig:asmCurves}
 \end{figure}
 
