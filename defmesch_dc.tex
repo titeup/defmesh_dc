@@ -59,21 +59,18 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, FEM Assembly
 %Positionment : code MPI compare to hybrid.\\
 %Problem on FEM : assembling, parallelization with shared memory non trivial.\\
 %Assembling on multicore, not on GPU (most of papers are for GPUs)\\\\
-
-Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency. 
 %%%%%%%%% REVIEWERS ASK TO BE MORE SPECIFIC ????
 %Even heavily optimized application such as GROMACS are below 50\% of the peak performance of state-of-the-art multicore systems~\cite{}.
-%The major effects of
-The increasing number of cores and parallel units implies a lower memory per core, higher requirement for concurrency, 
-higher coherency traffic and higher cost for coherency protocol.
+
+Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency. 
+The increasing number of cores and parallel units implies a lower memory per core, higher requirement for concurrency, higher coherency traffic and higher cost for coherency protocol.
 It results in a severe challenge for performance scalability. The manycore accelerators, such as the Intel Xeon Phi, exacerbate these issues.
 HPC users have to explore new paradigms.
 % to make an efficient usage of the new resources. 
 
-In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine
-and enhance the data and synchronization locality.
-In this paper, we propose and evaluate a new parallelization strategy  based on the Divide and Conquer, D\&C, principle~\cite{dc_specfem}, on unstructured problem. Our implementation relies on a task based runtime,
-Cilk~\cite{cilk5}. 
+In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine and enhance the data and synchronization locality.
+In this paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle~\cite{dc_specfem}, on unstructured problem.
+Our implementation relies on a task based runtime, Cilk~\cite{cilk5}. 
 
 We demonstrate the potential of the D\&C approach on the assembly step for Finite Element Methods, FEM.
 This step builds a matrix describing the linear system of equations from the mesh.
@@ -117,8 +114,7 @@ We consider two different approaches, a state-of-the-art coloring approach and o
 
 \begin{figure}[htp]
  \includegraphics[scale=0.6]{FEM_ass.pdf}
-% \includegraphics[scale=0.1]{Matrix_asm.png}
- \caption{A 2D FEM assembly example. The matrix non-zero values correspond to the edges of the mesh. }
+ \caption{A 2D FEM assembly example. The matrix non-zero values correspond to the edges of the mesh.}
  \label{fig:2Dasm}
 \end{figure}
 
@@ -188,6 +184,7 @@ In order to increase the data locality, we permute node and element arrays.
 As a result, nodes and elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighboring sub-domains and associated separator contiguously to improve locality between tasks.
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
+
 
 %\begin{figure}[htp]
 % \includegraphics[width=\textwidth]{dc_app.pdf}
