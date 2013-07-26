@@ -20,6 +20,6 @@ p <- p + scale_fill_manual(name="", values=c("#99CCFF","#338888"), labels=c("Ref
 p <- p + geom_line(data=tab_ideal, aes(x=as.factor(Cores), y=value, group=1, color=variable), size=1)
 p <- p + theme_bw() + theme(legend.key = element_blank())
 
-pdf(paste(f,".pdf",sep=""), width=4, height=2.2)
+pdf(paste(f,".pdf",sep=""), width=5.1, height=2.35)
 print(p)
 dev.off()
