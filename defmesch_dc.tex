@@ -163,13 +163,14 @@ First the recursive sharing naturally exposes high concurrency.
 As long as the data-set is large enough, it is possible to produce a deeper recursive tree to get more concurrency and therefore match the higher requirement of manycore systems.
 Furthermore, unlike in the coloring approach, no global barrier is needed.
 Synchronizations are local: only nodes of a same parent in the recursive tree have to be synchronized.
-
 Finally, D\&C approach improves the data locality by reordering the data as shown in Section~\ref{sec:DCrec}.
 
-With a small number of cores, the scalability of the D\&C parallelization is expected to be equivalent to the pure MPI, since we add no additional work to the critical path.
-However, the D\&C algorithm complexity is independent from the number of cores and thus, should continue scaling contrary to the MPI approach.
-Furthermore, in the D\&C approach, the code will benefit from the higher locality and reuse of elements.
+In the D\&C approach, the code will benefit from the higher locality and reuse of elements.
 Therefore all the versions using the reordering should outperform the original code.
+
+With a small number of cores, the scalability of the D\&C parallelization is expected to be equivalent to the MPI domain decomposition, since we add no significant work to the sequential path.
+Furthermore, contrary to the MPI approach, the D\&C algorithm complexity is independent from the number of cores and should continue scaling.
+
 
 D\&C consists of two parts described in following subsections.
 The first part is the recursive decomposition of each MPI domain and the second is the recursive execution of the FEM assembly step using Cilk.
@@ -178,14 +179,14 @@ The first part is the recursive decomposition of each MPI domain and the second 
 \label{sec:DCrec}
 D\&C is based on topological recursive bisections of the mesh.
 As illustrated in Figure~\ref{fig:DCapp}, the left and right sub-domains created by these bisections do not share any element and can be executed in parallel.
-However, the separator elements in the middle have nodes on both sides and must be processed after left and right sub-domains.
+However, the separator elements in the middle have nodes on both sides and must be processed after the left and right sub-domains.
 The load balancing between the sub-domains is important since it influences the depth of the recursive tree.
 A balanced tree will minimize the maximum depth and thus the number of synchronization on the critical path.
 Therefore, it is important to use a good partitioner to build equal sub-domains.
 In this study, we use the METIS graph partitioner~\cite{Metis}.
 
-In order to increase the data locality, we permute node and element arrays.
-As a result, nodes and elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
+In order to increase the data locality, we permute the nodes and the elements arrays.
+As a result, the nodes and the elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighboring sub-domains and their associated separator contiguously to improve locality between tasks.
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
 The proposed approach is then applied recursively to all sub-domains, providing a large amount of parallelism.
@@ -224,10 +225,11 @@ All these tasks are organized in queues and executed by \emph{worker} threads.
 For load balancing, Cilk runtime uses a work-stealing scheduler.
 When a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
 
-Once the recursive task tree as shown in Figure~\ref{fig:DCrec} is constructed, the Cilk implementation is straightforward.
+Once the recursive task tree, as shown in Figure~\ref{fig:DCrec}, is constructed, the Cilk implementation is straightforward.
 Following the pseudo-code in Figure~\ref{fig:DCpc}, left and right sub-domains of each node are split in two tasks and executed in parallel, as long as the recursion has not reached a leaf (domain size condition).
-These tasks have to be completed before launching the separator computation. 
 When the recursion reaches the leaves, the original sequential FEM assembly routine is executed on each leaf sub-domain.
+The left and right tasks have to be completed before launching the separator computation. 
+
 
 When all elements are accessed in a regular loop, there is no need to use a recursive task tree.
 In this case, similarly to OpenMP, Cilk provides an easy way to parallelize loops using the { \tt cilk\_for} keyword.
@@ -241,8 +243,8 @@ For the DEFMESH application, we observe a better scalability with the {\tt cilk\
 
 \section{Experiments}
 \label{sec:exp}
-To validate our approach, we apply the D\&C algorithm using Cilk and MPI on the FEM assembly step of an application from Dassault Aviation called DEFMESH.
-We compare our results with the pure MPI original version of the FEM assembly step and with the MPI + OpenMP version using the coloring approach.
+To validate our approach, we apply the D\&C algorithm using Cilk and MPI on the FEM assembly step of the DEFMESH application developed by Dassault Aviation.
+We compare our results with the original MPI domain decomposition version of the FEM assembly step and with the hybrid MPI + OpenMP version using the coloring approach.
 
 \subsection{Dassault Aviation DEFMESH Application}
 The DEFMESH application is a CFD code based on FEM.
@@ -324,7 +326,7 @@ Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 1
  \label{fig:asmCurves}
 \end{figure}
 
-As we can see in Figure~\ref{fig:asmCurvesA} representing the Laplacian variant, the {\tt D\&C} version is close to the {\tt Ref} version, using pure MPI, but it starts to decrease after 6 cores.
+As we can see in Figure~\ref{fig:asmCurvesA} representing the Laplacian variant, the {\tt D\&C} version is close to the {\tt Ref} version, using MPI domain decomposition, but it starts to decrease after 6 cores.
 This is due to the remaining sequential part of the D\&C code and the low intensity work in the Laplacian version.
 Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
 According to the Amdahl's law, by increasing the number of cores, the proportion of the sequential part increases.
@@ -400,7 +402,7 @@ M. Martone et al.~\cite{RSBasm} describe a matrix assembly approach for recursiv
 Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm} according to authors results.
 Dongarra et al.~\cite{Dongarra} evaluate an asynchronous task based parallelism approach for well-known factorization algorithms and compare it to traditional fork-join approach.
 A recent investigation on hybrid programming integrating task based parallelism in MPI processes have been made~\cite{MPI_task}.
-The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to pure MPI.
+The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to MPI domain decomposition.
 However, recursive and D\&C approaches are rarely employed on sparse algebra and unstructured problems because of their irregularity.
 
 %---------------------------------------------------------------------------
@@ -412,9 +414,9 @@ However, recursive and D\&C approaches are rarely employed on sparse algebra and
 \label{sec:conc}
 FEM assembly is the first step of many applications, such as seismic simulation, metal forming simulations, or crash test simulations.
 Depending on the application, the FEM assembly can represent more than 80\% of the execution time.
-In the Dassault Aviation DEFMESH application, the current D\&C implementation is already faster than the pure MPI original version and overpasses in performance and scalability the state-of-the-art coloring approach.
+In the Dassault Aviation DEFMESH application, the current D\&C implementation is already faster than the original  MPI domain decomposition version and overpasses in performance and scalability the state-of-the-art coloring approach.
 Even without exploiting the thread level parallelism, the D\&C approach significantly improves the locality, the scalability, and the execution time.
-The pure MPI version with D\&C has a perfect strong scaling for our experimental setup.
+The MPI domain decomposition version with D\&C has a perfect strong scaling for our experimental setup.
 
 As a future work, we plan to parallelize the separator in the D\&C FEM assembly and experiment on a larger number of cores.
 We strongly believe that D\&C will provide good performances on new manycores such as Xeon Phi.
