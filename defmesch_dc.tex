@@ -39,12 +39,12 @@ and
 \begin{abstract}
 Relying solely on domain decomposition and distributed memory parallelism can limit the performance on current supercomputers.
 At scale, a larger number of smaller domains can lead to an increased communication volume and to load balancing issues.
-Moreover, the decrease of the memory per core is not compatible with the memory overhead of a finer domain decomposition.
+Moreover, the decreasing memory per core is not compatible with the memory overhead of a finer domain decomposition.
 A popular alternative is to use shared memory parallelism in addition to the domain decomposition.
 In the context of Finite Element Methods, FEM, one of the challenging steps to parallelize in shared memory is the matrix assembly.
 In this paper, we propose and evaluate a Divide and Conquer, D\&C, algorithm to efficiently parallelize the FEM assembly.
 We compare this hybrid approach using D\&C to the pure domain decomposition and to a state-of-the-art hybrid approach using mesh coloring.
-Our target application is an industrial fluid dynamics code developed by Dassault Aviation. It is already parallelized with MPI domain decomposition.
+Our target application is an industrial fluid dynamics code, developed by Dassault Aviation, parallelized with MPI domain decomposition.
 The original Fortran code has been modified with minimum intrusion. Our D\&C approach uses task parallelism with Intel Cilk+.
 Preliminary results show good data locality and a 14\% performance improvement on a 12 cores 2 sockets Westmere-EP node.
 \end{abstract}
@@ -76,8 +76,18 @@ A popular alternative is to use shared memory parallelism in addition to the dom
 
 In the context of Finite Element Methods, FEM, one of the challenging steps to parallelize in shared memory is the matrix assembly.
 This step builds from the mesh a sparse matrix describing the linear system of equations.
-The values in the sparse matrix are the result of the reduction operation on the edges of neighboring elements.
+A simple FEM assembly illustration of a 2D regular mesh is presented in Figure~\ref{fig:2Dasm} with the associated sparse matrix.
+The non-zero values of the matrix correspond to the edges of the mesh. These values are the reduction of neighboring elements contribution.
+ In Figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$. This matrix is sparse and symmetrical, thus we only need to store the non-zero values in the lower triangle. In 3D, even with a fix number of edges per element, the number of neighboring elements can be arbitrarily large.
 Due to the irregularity of the structure and the serialization of the reduction, the FEM assembly cannot be parallelized using a simple parallel loop.
+
+
+\begin{figure}[htp]
+ \includegraphics[scale=0.6]{FEM_ass.pdf}
+ \caption{A 2D FEM assembly example. The matrix non-zero values correspond to the edges of the mesh.}
+ \label{fig:2Dasm}
+\end{figure}
+
 
 The easiest solution to handle the reductions on mesh edges is to use atomic operations.
 However, as the amount of computation per edge is usually low, this approach is inefficient.
@@ -91,7 +101,7 @@ The D\&C approach outperforms the original implementation based on domain decomp
 
 The paper is structured as follows.
 \begin{itemize}
-\item Section~\ref{sec:assembly} presents the FEM assembly step and two algorithms for its parallelization: the mesh coloring approach and our D\&C proposal.
+\item Section~\ref{sec:assembly} presents  two algorithms for the FEM assembly step parallelization: the mesh coloring approach and our D\&C proposal.
 \item Section~\ref{sec:exp} presents the experimental evaluation on the DEFMESH application from Dassault Aviation.
 \item Section~\ref{sec:rw} and~\ref{sec:conc} presents the related work and the conclusion.
 \end{itemize}
@@ -101,23 +111,12 @@ The paper is structured as follows.
 %---------------------------------------------------------------------------
 %---------------------------------------------------------------------------
 
-\section{FEM Assembly}
+\section{FEM Assembly Parallelization Using Shared Memory}
 \label{sec:assembly}
-Finite element assembly is common in most scientific applications using finite element methods.
-A simple FEM assembly illustration of a 2D regular mesh is presented in Figure~\ref{fig:2Dasm} with the associated sparse matrix.
-The non-zero values of the matrix correspond to the edges of the mesh.
-These values are the reduction of neighboring elements contribution. In Figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$.
-This matrix is sparse and symmetrical, thus we only store the non-zero values in the lower triangle.
-In 3D, even with a fix number of edges per element, the number of neighboring elements can be arbitrarily large.
-
-To create parallelism, we must build independent domains to be executed in parallel. We then synchronize them to handle shared edges.
+Matrix assembly is common in most scientific applications using finite element methods. 
+To extract the parallelism from the FEM assembly, we must build independent domains to be executed in parallel. We then synchronize them to handle shared edges.
 We consider two different approaches, a state-of-the-art coloring approach and our proposed D\&C strategy based on a topological recursive bisection.
 
-\begin{figure}[htp]
- \includegraphics[scale=0.6]{FEM_ass.pdf}
- \caption{A 2D FEM assembly example. The matrix non-zero values correspond to the edges of the mesh.}
- \label{fig:2Dasm}
-\end{figure}
 
 \subsection{Mesh Coloring}
 \label{sec:col}
