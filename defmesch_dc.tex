@@ -197,12 +197,14 @@ This allows to only compute sub-domains once for a mesh and it is independent fr
 Therefore, the partitioning is precomputed and the associated permutation is stored with the mesh.
 During the run, the application needs to apply the precomputed permutation before executing the recursive FEM assembly.
 
+
+%I use sync and not sunchronize in this code to be coherent with the silk part referring to this code
 \begin{SaveVerbatim}[]{VerbDC}
 function compute (subdomain) 
   if Node is not a leaf
     spawn compute (subdomain.left)
     compute (subdomain.right)
-    synchronize
+    sync
     compute (subdomain.sep)
   else
     FEM_assembly (subdomain)
