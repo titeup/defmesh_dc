@@ -326,7 +326,7 @@ Each core has its own L1 (32KB) and L2 (256KB) caches, and a shared L3 cache of 
  \label{fig:asmCurves}
 \end{figure}
 
-As we can see in Figure~\ref{fig:asmCurvesA} representing the Laplacian variant, the {\tt D\&C} version is close to the {\tt Ref} version, using MPI domain decomposition, but it starts to decrease after 6 cores.
+The Laplacian variant results are presented in Figure~\ref{fig:asmCurvesA}. The {\tt D\&C} version is close to the {\tt Ref} version, using MPI domain decomposition, but it starts to decrease after 6 cores.
 This is due to the remaining sequential part of the D\&C code and the low intensity work in the Laplacian version.
 Indeed, separator elements are not parallelized and can represent an important proportion of the computation.
 According to the Amdahl's law, by increasing the number of cores, the proportion of the sequential part increases.
@@ -335,15 +335,15 @@ This is confirmed on Figure~\ref{fig:asmCurvesB} showing the parallel efficiency
 In the Elasticity variant, illustrated in Figures~\ref{fig:asmCurvesC} and~\ref{fig:asmCurvesD}, {\tt D\&C} becomes equivalent to {\tt Ref}.
 Since the amount of work of the FEM assembly step is larger than in the Laplacian variant, the proportion of sequential computation, including the separators, is lower.
 In this case the scalability improves.
-Unlike the original version that makes irregular accesses to the cells of the matrix, the D\&C version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
+Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
 For any problem size, with D\&C, we can increase the number of partitions so that the tasks working-set will always fit in cache.
 When focusing on twelve cores, see Figure~\ref{fig:12CoresA}, all combinations of the {\tt D\&C} version are faster than {\tt Ref}.
 In all variants, the {\tt Coloring} version is the slowest one.
 This is probably due to a bad cache utilization as illustrated in Figure~\ref{fig:12CoresB}.
 
-These first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
+These first results are encouraging and we expect to match the ideal scaling when the separators will be parallelized.
 
-\begin{figure}[htp]
+\begin{figure}[t]
  \subfigure[$MPIxThreads (Version)$]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
  \subfigure[$MPIxThreads (Version)$]{\label{fig:12CoresB}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_L3TCM.pdf}}
  \caption{Comparison between all Elasticity versions on 12 cores. Execution time (a). L3 cache misses (b)}
@@ -412,9 +412,9 @@ However, recursive and D\&C approaches are rarely employed on sparse algebra and
 
 \section{Conclusion and Future Work}
 \label{sec:conc}
-FEM assembly is the first step of many applications, such as seismic simulation, metal forming simulations, or crash test simulations.
+FEM assembly is the first step of many applications, such as seismic simulation, metal forming simulation, or crash test simulation.
 Depending on the application, the FEM assembly can represent more than 80\% of the execution time.
-In the Dassault Aviation DEFMESH application, the current D\&C implementation is already faster than the original  MPI domain decomposition version and overpasses in performance and scalability the state-of-the-art coloring approach.
+In the Dassault Aviation DEFMESH application, the current D\&C implementation is already faster than the original  MPI domain decomposition and overpasses in performance and scalability the state-of-the-art coloring approach.
 Even without exploiting the thread level parallelism, the D\&C approach significantly improves the locality, the scalability, and the execution time.
 The MPI domain decomposition version with D\&C has a perfect strong scaling for our experimental setup.
 
