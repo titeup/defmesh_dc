@@ -292,29 +292,29 @@ The {\tt D\&C} version uses the recursive partitioning of each block of the mesh
 In addition to MPI and OpenMP, this version exploits the task parallelism in the FEM assembly using Cilk.
 The {\tt Coloring} version exploits OpenMP parallelism between all the elements of a same color in the FEM assembly.
 
-For each of these versions, we consider the non-linear algorithm of the Laplacian and the Elastic operators of DEFMESH.
-Both of them run in 50 linear steps.
+For each of these versions, we use the non-linear algorithm with the Laplacian and the Elastic operators of DEFMESH.
+The algorithm run in 50 linear steps.
 The measures correspond to the average time of one iteration.
-We measure the FEM assembly step, where the D\&C approach and the coloring have been applied.
-We also measure the solver to estimate the impact of the D\&C data permutations on the rest of the code.
-We ensure that the numerical results and the number of solver iterations needed to converge are stable in all versions.
+We compare the  {\tt Ref} , {\tt D\&C} and the{\tt Coloring} version of the FEM assembly step.
+In a second time, we also measure the solver step to estimate the impact of the D\&C data permutations on the rest of the code.
+We ensure that the numerical results at each steps and the number of solver iterations needed to converge are stable in all versions.
 
 We present the results both in terms of execution times and of parallel efficiency.
 When the \emph{x} axis represents the number of cores, it corresponds to the number of MPI processes multiplied by the number of threads.
-In the figures presenting execution time, the \emph{y} axis corresponds to elapsed CPU cycles for the FEM assembly and to elapsed time for the solver.
-Concerning efficiency, the \emph{y} axis represents the parallel efficiency given by the following formula:
+In the figures presenting the execution time, the \emph{y} axis corresponds to elapsed CPU cycles for the FEM assembly and to the elapsed time for the solver.
+Concerning efficiency, the \emph{y} axis represents the parallel efficiency described with the formula:
 $E_{P} = \frac{T_{S}}{P*T_{P}}$, where $E_{P}$ is the efficiency on $P$ processor, $T_{S}$ the sequential time, and $T_{P}$ the time on $P$ processors.
 
 For each figure, we use 1, 4, 8 and 12 MPI processes for {\tt Ref} and 1 MPI with 1, 2, 4, 6, 8 and 12 threads for {\tt Coloring} and {\tt D\&C}.
 We also vary the number of METIS partitions and the number of Cilk tasks, but we did not observe significant changes in the results.
 According to the Cilk documentations, a minimum of 10 tasks per core is appropriate.
 Therefore we use 128 Cilk tasks, which is enough to fit in cache.
-We cut MPI domains in 512 partitions to improve locality.
+We cut the MPI domains in 512 partitions maximize the locality improvement.
 
 The application has been compiled with Intel composers 13.1.1 (icc and ifort) and Intel MPI 4.1.0 and Intel Cilk+ runtime.
-The OpenMP affinity is set to scatter and Cilk threads are not pinned.
-We perform these experiments on twelve cores grouped in two sockets of 6 cores Intel Xeon X5650 clocked at 2.67 GHz.
-Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
+The OpenMP affinity is set to scatter and Cilk {\tt worker} threads are not pinned.
+We perform these experiments on a twelve cores two sockets Intel Xeon X5650 (Westmere-EP) clocked at 2.67 GHz.
+Each core has its own L1 (32KB) and L2 (256KB) caches, and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
 \subsection{FEM Assembly results}
 \begin{figure}[htp]
