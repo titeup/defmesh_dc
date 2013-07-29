@@ -353,7 +353,7 @@ For any problem size, with {\tt D\&C}, we can increase the number of partitions 
 When focusing on twelve cores, see figure~\ref{fig:12CoresA}, all combinations of the {\tt D\&C} version are faster than {\tt Ref}.
 In all variants, the {\tt Coloring} version is the slowest one. This is probably due to a bad cache utilization as illustrated in figure~\ref{fig:12CoresB}.
 
-These first results are encouraging and we can reasonably expect to match the ideal scaling on big enough test cases when the separators will be parallelized.
+These first results are encouraging and we can reasonably expect to match the ideal scaling when the separators will be parallelized.
 
 \begin{figure}[htp]
  \subfigure[$MPIxThreads (Version)$]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
