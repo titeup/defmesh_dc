@@ -26,15 +26,15 @@
 \author[A]{\fnms{Lo\"ic} \snm{Th\'ebault}%
 \thanks{Corresponding Author E-mail: loic.thebault@prism.uvsq.fr}},
 \author[A]{\fnms{Eric} \snm{Petit}},
-\author[D]{\fnms{Marc} \snm{Tchiboukdjian}},
+\author[C]{\fnms{Marc} \snm{Tchiboukdjian}},
 \author[B]{\fnms{Quang} \snm{Dinh}},
 and
-\author[A,D]{\fnms{William} \snm{Jalby}}
+\author[A,C]{\fnms{William} \snm{Jalby}}
 
 \runningauthor{L. Th\'ebault et al.}
 \address[A]{PRISM - University of Versailles, France}
 \address[B]{Dassault Aviation, Saint-Cloud, France}
-\address[D]{Exascale Computing Research, France}
+\address[C]{Exascale Computing Research, France}
 
 \begin{abstract}
 Current algorithms and runtimes struggle to scale to a large number of cores and show a poor parallel efficiency on current HPC machines.
@@ -185,13 +185,6 @@ As a result, nodes and elements can be consecutive in memory inside each sub-dom
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighboring sub-domains and associated separator contiguously to improve locality between tasks.
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
 
-%\begin{figure}[htp]
-% \includegraphics[width=\textwidth]{dc_app.pdf}
-% %\includegraphics[scale=0.23]{Data_permutations.png}
-% \caption{ \label{fig:DCapp}The D\&C approach. The left and right parts can be treated in parallel. The edges on the cut form the separator to treat after left and right. For each cut, we reorder the elements in left, right and separator parts.  }
-%
-%\end{figure}
-
 The proposed approach is then applied recursively to all sub-domains, providing a large amount of parallelism.
 As illustrated in figure~\ref{fig:DCrec}, each leaf of the resulting tree is associated with an independent Cilk task which executes the FEM assembly process on its sub-domain.
 In order to optimize the locality with permutations whithout multiplying tasks, it is possible to stop the recursion before reaching the leaves.
@@ -337,6 +330,7 @@ We perform these experiments on twelve cores grouped in two sockets of 6 cores I
 Each core has its own L1 (32KB) and L2 (256KB) caches and a shared L3 cache of 12MB. The main memory is divided in two NUMA nodes of 16GB.
 
 \subsection{FEM Assembly results}
+
 \begin{figure}[htp]
  \subfigure[Laplacian execution time]{\label{fig:asmCurvesA}\includegraphics[width=0.43\textwidth]{graph_R/Laplacian_asm_time.pdf}}
  \subfigure[Laplacian parallel efficiency]{\label{fig:asmCurvesB}\includegraphics[width=0.55\textwidth]{graph_R/Laplacian_asm_efficiency.pdf}}
