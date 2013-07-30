@@ -88,10 +88,11 @@ Due to the irregularity of the structure and the serialization of the reduction,
  \label{fig:2Dasm}
 \end{figure}
 
-The easiest solution to handle the reductions on mesh edges is to use atomic operations.
+The easiest solution to handle the reductions on mesh edges is to use locks or atomic operations.
 However, as the amount of computation per edge is usually low, this approach is inefficient.
 The state-of-the-art approach for shared memory parallelization is mesh coloring, but it results in a bad data locality as shown in Section~\ref{sec:col}.
-Recent works published on parallelizing FEM assembly codes are designed for GPUs~\cite{cecka2011assembly,CPUGPUasm} and can not be efficiently applied to multicore architectures.
+Recent works published on parallelizing FEM assembly codes are designed for GPUs~\cite{cecka2011assembly,CPUGPUasm}
+and may not be as efficient on multicore architectures.
 
 In this paper, we propose a new approach based on Divide and Conquer, D\&C, to parallelize the FEM assembly step.
 We evaluate this algorithm on an industrial Computational Fluid Dynamics, CFD, code from Dassault Aviation.
@@ -112,22 +113,30 @@ The paper is structured as follows.
 
 \section{FEM Assembly Parallelization Using Shared Memory}
 \label{sec:assembly}
+
 Matrix assembly is common in most scientific applications using finite element methods. 
-To extract the parallelism from the FEM assembly, we must build independent domains to be executed in parallel. We then synchronize them to handle shared edges.
-We consider two different approaches, a state-of-the-art coloring approach and our proposed D\&C strategy based on a topological recursive bisection.
+We consider two different approaches, a state-of-the-art coloring approach and our
+proposed D\&C strategy, to parallelize the assembly step using shared memory.
 
 
 \subsection{Mesh Coloring}
 \label{sec:col}
 Mesh coloring avoids race conditions by assigning a different color to the elements sharing an edge.
-It originally targeted vector machines, indeed elements of a same color do not contribute to the same edges and thus can be executed in parallel.
-Determining a minimal coloring is NP-complete, but creating an efficient coloring with a larger number of colors using heuristic is well-known in literature~\cite{CPUfe}.
+As elements of a same color do not contribute to the same edges, they can safely be executed in parallel.
+Determining a minimal coloring is NP-complete, but well-known heuristics can create efficient colorings
+with only a few more colors~\cite{CPUfe}.
 A pseudo-code and a simple 2D coloring example are given in Figure~\ref{fig:colApp}.
 
 %Despite mesh coloring is an efficient approach for vector machines, it is not well suited for current shared memory parallel architectures.
-Sorting the elements by color improves the spatial locality and enables vectorization.
-However, each color covers the whole domain and accesses every edges only once.
-For large domains, there will be no edge locality in cache between colors.
+%Sorting the elements by color improves the spatial locality and vectorization. 
+Coloring enables the computation of each color with a simple parallel loop.
+However, most colors will cover a large part of the domain and touch all mesh 
+points. Thus treating one color will trigger the transfer of a large part
+of the mesh from memory. As large meshes do not fit in cache, such transfers
+have to be done for each color. This effectively multiplies the bandwidth needs by
+a factor equal to the number of colors. Since the amount of computation is
+usually low during matrix assembly, it is primordial to keep bandwidth needs
+to a minimum for optimal performance. This is the goal of the D\&C approach.
 
 \begin{SaveVerbatim}[]{VerbCol}
 NodeToElem = build_node_element (ElemToNode)
@@ -375,14 +384,13 @@ Moreover, the L3 cache misses occurring in the solver are 23\% lower with {\tt D
 \section{Related Work}
 \label{sec:rw}
 
-TODO cite~\cite{dc_specfem} and some Marc's papers
 
 Many choices are available to complete FEM assembly in parallel.
 All methods have their advantages and their limitations, depending for instance on the target architecture or the mesh size.
 Recent studies~\cite{cecka2011assembly,CPUGPUasm} investigate different ways to compute FEM assembly on CPUs and GPUs.
 
 A first method, presented in~\cite{cecka2011assembly}, consists in creating parallelism between all the non-zero entries of the system of equations.
-This method has a very fine grain thread parallelism and thus can be applied only to GPUs.
+This method has a very fine grain thread parallelism and thus is more suited to GPUs.
 It stores, in parallel, the contributions from all elements in the global or local memory and then reduce in parallel these contributions to compute the non-zero values.
 By arranging the data layout, this method can provide good performance on GPUs.
 However, it suffers from bad load balancing since the number of neighboring elements used to compute non-zero values may vary.
@@ -393,18 +401,20 @@ However, this approach leads to redundant computations of element contributions.
 A second method~\cite{cecka2011assembly} consists in assembling by mesh element.
 One thread is responsible for the contribution of one element.
 It can be applied to both GPUs and CPUs.
-A coloring approach~\cite{CUDAfe,CPUfe} can be used to launch several threads in parallel on independent elements.
+A coloring approach~\cite{CPUfe} can be used to launch several threads in parallel on independent elements.
 This way, each thread has a good load balance per color.
 The load balancing between colors has no influence since they are serialized.
 However, bad data locality can cause poor performance as explained is Section~\ref{sec:col}.
 
 Divide and Conquer paradigm and recursion in general have already been explored extensively for parallel algorithm~\cite{div}.
-M. Martone et al.~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
+Martone et al.~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
 Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm} according to authors results.
-Dongarra et al.~\cite{Dongarra} evaluate an asynchronous task based parallelism approach for well-known factorization algorithms and compare it to traditional fork-join approach.
-A recent investigation on hybrid programming integrating task based parallelism in MPI processes have been made~\cite{MPI_task}.
-The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to MPI domain decomposition.
-However, recursive and D\&C approaches are rarely employed on sparse algebra and unstructured problems because of their irregularity.
+D\&C algorithms have also been used to increase locality and enable task parallelism for unstructured mesh
+visulization in~\cite{tvcg10,egpgv10,hppc10} and for wave propagation in~\cite{dc_specfem}.
+%Dongarra et al.~\cite{Dongarra} evaluate an asynchronous task based parallelism approach for well-known factorization algorithms and compare it to traditional fork-join approach.
+%A recent investigation on hybrid programming integrating task based parallelism in MPI processes have been made~\cite{MPI_task}.
+%The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to MPI domain decomposition.
+%However, recursive and D\&C approaches are rarely employed on sparse algebra and unstructured problems because of their irregularity.
 
 %---------------------------------------------------------------------------
 %---------------------------------------------------------------------------
