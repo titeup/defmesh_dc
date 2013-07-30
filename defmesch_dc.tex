@@ -121,17 +121,17 @@ proposed D\&C strategy.
 
 \subsection{Mesh Coloring}
 \label{sec:col}
-Mesh coloring avoids race conditions by assigning a different color to the elements sharing an edge. Therefore, colors must be treated sequentially, but, as elements of a same color do not contribute to the same edges, they can safely be executed in parallel.
+Mesh coloring avoids race conditions by assigning a different color to the elements sharing an edge. Therefore, these colors must be treated sequentially. But, as elements of a same color do not contribute to the same edges, these elements can safely be executed in parallel.
 Determining a minimal coloring is NP-complete. However, well-known heuristics can create efficient colorings
 with only a few more colors~\cite{CPUfe}. A pseudo-code and a simple 2D coloring example are given in Figure~\ref{fig:colApp}.
 
 Coloring enables the computation of each element of a color with a simple parallel loop.
-However, colors will cover a large part of the domain and touch all mesh 
+However, colors will cover a large part of the domain and will access all mesh 
 points. Thus treating one color will trigger the transfer of a large part
-of the mesh from memory. As large meshes do not fit in cache, such transfers
-have to be done from memory for each color. This multiplies the bandwidth requirements by
+of the mesh. As large meshes do not fit in cache, for each color this transfer
+have to be done from memory . This multiplies the bandwidth requirements by
 a factor equal to the number of colors. Since the computation is
-usually low during matrix assembly, it is primordial to save the bandwidth for optimal performance. This is the goal of our D\&C approach.
+usually low during matrix assembly, it is primordial to save bandwidth for optimal performance. This is the goal of our D\&C approach.
 
 
 %Despite mesh coloring is an efficient approach for vector machines, it is not well suited for current shared memory parallel architectures.
@@ -383,14 +383,13 @@ Moreover, the L3 cache misses occurring in the solver are 23\% lower with {\tt D
 \section{Related Work}
 \label{sec:rw}
 
-
-There are four methods in the literature for parallel FEM assembly in shared memory.
+We identify four main methods in the literature for parallel FEM assembly in shared memory.
 \begin{itemize}
 \item \textit{Assembly by mesh element with coloring}~\cite{CPUfe}. This approach has been discussed in section~\ref{sec:col}.
 \item \textit{Local assembly by mesh element followed by global assembly in a reduction step}~\cite{cecka2011assembly}.
 In this approach, all elements are computed in parallel without synchronization. To avoid data races, coefficients are duplicated
 and reduced in parallel during a second phase. Since each coefficient need to be stored multiple times, this approach may be
-limited by the available memory on large meshes. Moreover, this approach increase bandwidth needs since one need to go over
+limited by the available memory on large meshes. Moreover, this approach increases bandwidth requirements since one need to go over
 the data twice.
 \item \textit{Assembly by non-zero coefficient}~\cite{bolz2003sparse,cecka2011assembly}. This approach consists in creating parallelism
 between all the non-zero entries of the sparse matrix. This method has a very fine grain thread parallelism
@@ -399,7 +398,7 @@ and thus is better suited to GPUs. Moreover, it induces a large amount of redund
 requires no synchronization during the assembly but increases the bandwidth needs and the amount of computation in the solver.
 Moreover, it breaks the abstraction between the solver and the rest of the application.
 \end{itemize}
-One can find recent performance evaluation of all these methods on CPUs and GPUs in~\cite{CPUGPUasm,cecka2011assembly}.
+One can find recent performance evaluation of all these methods on CPUs and GPUs in~\cite{cecka2011assembly,CPUGPUasm}.
 
 Divide and Conquer paradigm and recursion in general have already been explored extensively for parallel algorithm~\cite{div}.
 Martone \textit{et al.}~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
