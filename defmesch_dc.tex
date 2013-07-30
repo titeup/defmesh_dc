@@ -92,12 +92,12 @@ Due to the irregularity of the structure and the serialization of the reduction,
 The easiest solution to handle the reductions on mesh edges is to use atomic operations.
 However, as the amount of computation per edge is usually low, this approach is inefficient.
 The state-of-the-art approach for shared memory parallelization is mesh coloring, but it results in a bad data locality as shown in Section~\ref{sec:col}.
-Recent works published on parallelizing FEM assembly codes are designed for GPUs~\cite{cecka2011assembly,CPUGPUasm} and can not be efficiently applied to multicore architectures.
+Recently published advances on parallelizing FEM assembly codes are designed for GPUs~\cite{cecka2011assembly,CPUGPUasm} and can not be efficiently applied to multicore architectures.
 
 In this paper, we propose a new approach based on Divide and Conquer, D\&C, to parallelize the FEM assembly step.
 We evaluate this algorithm on an industrial Computational Fluid Dynamics, CFD, code from Dassault Aviation.
 This code computes the effect of mesh deformation to optimize airplane structure.
-The D\&C approach outperforms the original implementation based on domain decomposition and the coloring method.
+The D\&C approach outperforms the original implementation based on domain decomposition and coloring.
 
 The paper is structured as follows.
 \begin{itemize}
@@ -121,7 +121,7 @@ We consider two different approaches, a state-of-the-art coloring approach and o
 \subsection{Mesh Coloring}
 \label{sec:col}
 Mesh coloring avoids race conditions by assigning a different color to the elements sharing an edge.
-It originally targeted vector machines, indeed elements of a same color do not contribute to the same edges and thus can be executed in parallel.
+It originally targeted vector machines. Indeed elements of a same color do not contribute to the same edges and thus can be executed in parallel.
 Determining a minimal coloring is NP-complete, but creating an efficient coloring with a larger number of colors using heuristic is well-known in literature~\cite{CPUfe}.
 A pseudo-code and a simple 2D coloring example are given in Figure~\ref{fig:colApp}.
 
@@ -155,7 +155,7 @@ For each color C in colors
 
 The main idea of our D\&C approach for shared memory parallelization is to enable task level parallelism while preserving good data locality and minimizing synchronization cost.
 When the size of the domain increases, we increase the number of tasks and threads instead of increasing the number of MPI domains and the amount of communication.
-This way, we take benefit of replacing communication by data sharing.
+This way, we take benefit from replacing communication by data sharing.
 
 The rational is to recursively divide the work in two or more independent tasks and synchronize these tasks locally.
 This recursive approach has many advantages.
@@ -189,12 +189,12 @@ In order to increase the data locality, we permute the nodes and the elements ar
 As a result, the nodes and the elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighboring sub-domains and their associated separator contiguously to improve locality between tasks.
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
-The proposed approach is then applied recursively to all sub-domains, providing a large amount of parallelism.
+The proposed approach is then applied recursively to all sub-domains to provide a large increase of parallelism.
 As illustrated in Figure~\ref{fig:DCrec}, each leaf of the resulting tree is associated with an independent Cilk task which executes the FEM assembly process on its sub-domain.
 
 The partitioning is topological, cuts are done on edges rather than on geometrical coordinates.
-This allows to only compute sub-domains once for a mesh and it is independent from the rest of the computation.
-Therefore, the partitioning is precomputed and the associated permutation is stored with the mesh.
+Therefore, it is independent from the rest of the computation and thus allows to only compute sub-domains once for a mesh.
+This partitioning is precomputed and the associated permutation is stored with the mesh file.
 During the run, the application needs to apply the precomputed permutation before executing the recursive FEM assembly.
 
 
@@ -311,7 +311,7 @@ For each figure, we use 1, 4, 8 and 12 MPI processes for {\tt Ref} and 1 MPI wit
 We also vary the number of METIS partitions and the number of Cilk tasks, but we did not observe significant changes in the results.
 According to the Cilk documentations, a minimum of 10 tasks per core is appropriate.
 Therefore we use 128 Cilk tasks, which is enough to fit in cache.
-We cut the MPI domains in 512 partitions maximize the locality improvement.
+We cut the MPI domains in 512 partitions to maximize the locality improvement.
 
 The application has been compiled with Intel composers 13.1.1 (icc and ifort) and Intel MPI 4.1.0 and Intel Cilk+ runtime.
 The OpenMP affinity is set to scatter and Cilk {\tt worker} threads are not pinned.
@@ -384,7 +384,7 @@ Recent studies~\cite{cecka2011assembly,CPUGPUasm} investigate different ways to 
 
 A first method, presented in~\cite{cecka2011assembly}, consists in creating parallelism between all the non-zero entries of the system of equations.
 This method has a very fine grain thread parallelism and thus can be applied only to GPUs.
-It stores, in parallel, the contributions from all elements in the global or local memory and then reduce in parallel these contributions to compute the non-zero values.
+It stores, in parallel, the contributions from all elements in the global or local memory and then reduces in parallel these contributions to compute the non-zero values.
 By arranging the data layout, this method can provide good performance on GPUs.
 However, it suffers from bad load balancing since the number of neighboring elements used to compute non-zero values may vary.
 Due to the fast growing number of local copies, the approach is limited to relatively small test cases.
