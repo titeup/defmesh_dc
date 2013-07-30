@@ -89,7 +89,7 @@ Due to the irregularity of the structure and the serialization of the reduction,
 \end{figure}
 
 The easiest solution to handle the reductions on mesh edges is to use locks or atomic operations.
-However, as the amount of computation per edge is usually low, this approach is inefficient.
+However, as the computation per edge is usually low, this approach is inefficient.
 The state-of-the-art approach for shared memory parallelization is mesh coloring, but it results in a bad data locality as shown in Section~\ref{sec:col}. Recent works published on parallelizing FEM assembly codes are designed for GPUs~\cite{cecka2011assembly,CPUGPUasm}
 and may not be as efficient on multicore architectures.
 
@@ -115,8 +115,8 @@ The paper is structured as follows.
 \label{sec:assembly}
 
 Matrix assembly is common in most scientific applications using finite element methods. 
-We consider two different approaches, a state-of-the-art coloring approach and our
-proposed D\&C strategy, to parallelize the assembly step using shared memory.
+To parallelize the assembly step using shared memory, we consider two different approaches, a state-of-the-art coloring approach and our
+proposed D\&C strategy.
 
 
 \subsection{Mesh Coloring}
@@ -128,12 +128,12 @@ with only a few more colors~\cite{CPUfe}. A pseudo-code and a simple 2D coloring
 
 %Despite mesh coloring is an efficient approach for vector machines, it is not well suited for current shared memory parallel architectures.
 %Sorting the elements by color improves the spatial locality and vectorization. 
-Coloring enables the computation of each color with a simple parallel loop.
+Coloring enables the computation of each element of a color with a simple parallel loop.
 However, most colors will cover a large part of the domain and touch all mesh 
 points. Thus treating one color will trigger the transfer of a large part
 of the mesh from memory. As large meshes do not fit in cache, such transfers
-have to be done for each color. This effectively multiplies the bandwidth needs by
-a factor equal to the number of colors. Since the amount of computation is
+have to be done for each color. This multiplies the bandwidth requirements by
+a factor equal to the number of colors. Since the computation is
 usually low during matrix assembly, it is primordial to keep bandwidth needs
 to a minimum for optimal performance. This is the goal of the D\&C approach.
 
@@ -161,7 +161,7 @@ For each color C in colors
 %Each leaves is responsible of its own data and there is a very minimal amount of sharing, avoiding costly locks and coherency protocols. 
 
 The main idea of our D\&C approach for shared memory parallelization is to enable task level parallelism while preserving good data locality and minimizing synchronization cost.
-When the size of the domain increases, we increase the number of tasks and threads instead of increasing the number of MPI domains and the amount of communication.
+When the size of the domain increases, we increase the number of tasks and threads instead of increasing the number of MPI domains and of communication.
 This way, we take benefit from replacing communication by data sharing.
 
 The rational is to recursively divide the work in two or more independent tasks and synchronize these tasks locally.
@@ -342,7 +342,7 @@ According to the Amdahl's law, by increasing the number of cores, the proportion
 This is confirmed on Figure~\ref{fig:asmCurvesB} showing the parallel efficiency.
 
 In the Elasticity variant, illustrated in Figures~\ref{fig:asmCurvesC} and~\ref{fig:asmCurvesD}, {\tt D\&C} becomes equivalent to {\tt Ref}.
-Since the amount of work of the FEM assembly step is larger than in the Laplacian variant, the proportion of sequential computation, including the separators, is lower.
+Since the work per element in the FEM assembly step is larger than in the Laplacian variant, the proportion of sequential computation, including the separators, is lower.
 In this case the scalability improves.
 Unlike the original version that makes irregular accesses to the cells of the matrix, the {\tt D\&C} version works on matrix cells packed contiguously in small sub-matrix corresponding to the Cilk tasks.
 For any problem size, with D\&C, we can increase the number of partitions so that the tasks working-set will always fit in cache.
