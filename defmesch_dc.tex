@@ -129,7 +129,7 @@ Coloring enables the computation of each element of a color with a simple parall
 However, colors will cover a large part of the domain and will access all mesh 
 points. Thus treating one color will trigger the transfer of a large part
 of the mesh. As large meshes do not fit in cache, for each color this transfer
-have to be done from memory . This multiplies the bandwidth requirements by
+have to be done from memory. This multiplies the bandwidth requirements by
 a factor equal to the number of colors. Since the computation is
 usually low during matrix assembly, it is primordial to save bandwidth for optimal performance. This is the goal of our D\&C approach.
 
@@ -384,21 +384,27 @@ Moreover, the L3 cache misses occurring in the solver are 23\% lower with {\tt D
 \label{sec:rw}
 
 We identify four main methods in the literature for parallel FEM assembly in shared memory.
+
 \begin{itemize}
+
 \item \textit{Assembly by mesh element with coloring}~\cite{CPUfe}. This approach has been discussed in section~\ref{sec:col}.
+
 \item \textit{Local assembly by mesh element followed by global assembly in a reduction step}~\cite{cecka2011assembly}.
 In this approach, all elements are computed in parallel without synchronization. To avoid data races, coefficients are duplicated
 and reduced in parallel during a second phase. Since each coefficient needs to be stored multiple times, this approach may be
-limited by the available memory on large meshes. Moreover, this approach increases bandwidth requirements since data have to be accessed twice.
+limited for on large meshes by the available memory. Moreover, this approach increases bandwidth requirements since data have to be accessed twice.
 
 \item \textit{Assembly by non-zero coefficient}~\cite{bolz2003sparse,cecka2011assembly}. This approach consists in creating parallelism
 between all the non-zero entries of the sparse matrix. This method has a very fine grain thread parallelism
-and thus is better suited to GPUs. Moreover, it induces a large amount of redundant computations.
+and thus is better suited to GPUs. Moreover, it introduces a large amount of redundant computations.
+
 \item \textit{The local matrix approach}~\cite{CPUGPUasm}. In this approach, the reduction is deported to the solver phase. It
-requires no synchronization during the assembly but increases the bandwidth needs and the amount of computation in the solver.
+requires no synchronization during the assembly but increases the bandwidth and computation requirements in the solver.
 Moreover, it breaks the abstraction between the solver and the rest of the application.
+
 \end{itemize}
-One can find recent performance evaluation of all these methods on CPUs and GPUs in~\cite{cecka2011assembly,CPUGPUasm}.
+
+Recent performance evaluation of all these methods on CPUs and GPUs can be found in~\cite{cecka2011assembly,CPUGPUasm}.
 
 Divide and Conquer paradigm and recursion in general have already been explored extensively for parallel algorithm~\cite{div}.
 Martone \textit{et al.}~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
