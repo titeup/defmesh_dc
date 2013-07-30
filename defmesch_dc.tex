@@ -388,7 +388,7 @@ We identify four main methods in the literature for parallel FEM assembly in sha
 \item \textit{Assembly by mesh element with coloring}~\cite{CPUfe}. This approach has been discussed in section~\ref{sec:col}.
 \item \textit{Local assembly by mesh element followed by global assembly in a reduction step}~\cite{cecka2011assembly}.
 In this approach, all elements are computed in parallel without synchronization. To avoid data races, coefficients are duplicated
-and reduced in parallel during a second phase. Since each coefficient need to be stored multiple times, this approach may be
+and reduced in parallel during a second phase. Since each coefficient needs to be stored multiple times, this approach may be
 limited by the available memory on large meshes. Moreover, this approach increases bandwidth requirements since one need to go over
 the data twice.
 \item \textit{Assembly by non-zero coefficient}~\cite{bolz2003sparse,cecka2011assembly}. This approach consists in creating parallelism
