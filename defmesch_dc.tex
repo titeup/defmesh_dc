@@ -121,21 +121,21 @@ proposed D\&C strategy.
 
 \subsection{Mesh Coloring}
 \label{sec:col}
-Mesh coloring avoids race conditions by assigning a different color to the elements sharing an edge.
-As elements of a same color do not contribute to the same edges, they can safely be executed in parallel.
+Mesh coloring avoids race conditions by assigning a different color to the elements sharing an edge. Therefore, colors must be treated sequentially, but, as elements of a same color do not contribute to the same edges, they can safely be executed in parallel.
 Determining a minimal coloring is NP-complete, but well-known heuristics can create efficient colorings
 with only a few more colors~\cite{CPUfe}. A pseudo-code and a simple 2D coloring example are given in Figure~\ref{fig:colApp}.
 
-%Despite mesh coloring is an efficient approach for vector machines, it is not well suited for current shared memory parallel architectures.
-%Sorting the elements by color improves the spatial locality and vectorization. 
 Coloring enables the computation of each element of a color with a simple parallel loop.
-However, most colors will cover a large part of the domain and touch all mesh 
+However, colors will cover a large part of the domain and touch all mesh 
 points. Thus treating one color will trigger the transfer of a large part
 of the mesh from memory. As large meshes do not fit in cache, such transfers
-have to be done for each color. This multiplies the bandwidth requirements by
+have to be done from memory for each color. This multiplies the bandwidth requirements by
 a factor equal to the number of colors. Since the computation is
-usually low during matrix assembly, it is primordial to keep bandwidth needs
-to a minimum for optimal performance. This is the goal of the D\&C approach.
+usually low during matrix assembly, it is primordial to save the bandwidth for optimal performance. This is the goal of our D\&C approach.
+
+
+%Despite mesh coloring is an efficient approach for vector machines, it is not well suited for current shared memory parallel architectures.
+%Sorting the elements by color improves the spatial locality and vectorization. 
 
 \begin{SaveVerbatim}[]{VerbCol}
 NodeToElem = build_node_element (ElemToNode)
@@ -429,7 +429,7 @@ The MPI domain decomposition version with D\&C has a perfect strong scaling for 
 
 As a future work, we plan to parallelize the separator in the D\&C FEM assembly and experiment on a larger number of cores.
 We strongly believe that D\&C will provide good performances on new manycores such as Xeon Phi.
-Extension will focus on D\&C friendly data structure definition and apply D\&C on other parts of the FEM application. 
+Extension will focus on D\&C friendly data structure definition and apply D\&C on other parts of FEM applications. 
 %We are also considering a hybrid approach using coloring inside each D\&C sub-domains in order to enable vectorization.
 
 \subsubsection*{Acknowledgments} \scriptsize{
