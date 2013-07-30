@@ -67,7 +67,7 @@ Divide and Conquer, Task, Cilk, Mesh Partitioning, CFD, FEM Assembly
 %In order to mitigate the node scalability issues, users can modify their application using hybrid MPI + threads to take advantage of the full topology of the machine
 %and enhance the data and synchronization locality.
 %In this paper, we propose and evaluate a new parallelization strategy based on the Divide and Conquer, D\&C, principle on unstructured problem.
-%Our implementation relies on a task based runtime, Cilk~\cite{cilk5}. 
+%Our implementation relies on a task based runtime, Cilk~\cite{cilk5}.
 
 Relying solely on domain decomposition and distributed memory parallelism can limit the performance on current supercomputers.
 At scale, a larger number of smaller domains can lead to an increased communication volume and to load balancing issues.
@@ -78,16 +78,15 @@ In the context of Finite Element Methods, FEM, one of the challenging steps to p
 This step builds from the mesh a sparse matrix describing the linear system of equations.
 A simple FEM assembly illustration of a 2D regular mesh is presented in Figure~\ref{fig:2Dasm} with the associated sparse matrix.
 The non-zero values of the matrix correspond to the edges of the mesh. These values are the reduction of neighboring elements contribution.
- In Figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$. This matrix is sparse and symmetrical, thus we only need to store the non-zero values in the lower triangle. In 3D, even with a fix number of edges per element, the number of neighboring elements can be arbitrarily large.
+In Figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$. This matrix is sparse and symmetrical, thus we only need to store the non-zero values in the lower triangle.
+In 3D, even with a fix number of edges per element, the number of neighboring elements can be arbitrarily large.
 Due to the irregularity of the structure and the serialization of the reduction, the FEM assembly cannot be parallelized using a simple parallel loop.
 
-
-\begin{figure}[htp]
+\begin{figure}[tp]
  \includegraphics[scale=0.6]{FEM_ass.pdf}
  \caption{A 2D FEM assembly example. The matrix non-zero values correspond to the edges of the mesh.}
  \label{fig:2Dasm}
 \end{figure}
-
 
 The easiest solution to handle the reductions on mesh edges is to use atomic operations.
 However, as the amount of computation per edge is usually low, this approach is inefficient.
@@ -346,9 +345,9 @@ This is probably due to a bad cache utilization as illustrated in Figure~\ref{fi
 These first results are encouraging and we expect to match the ideal scaling when the separators will be parallelized.
 
 \begin{figure}[t]
- \subfigure[$MPIxThreads (Version)$]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
- \subfigure[$MPIxThreads (Version)$]{\label{fig:12CoresB}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_L3TCM.pdf}}
- \caption{Comparison between all Elasticity versions on 12 cores. Execution time (a). L3 cache misses (b)}
+ \subfigure[Elasticity execution time]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
+ \subfigure[Elasticity L3 cache misses]{\label{fig:12CoresB}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_L3TCM.pdf}}
+ \caption{Comparison between all Elasticity versions on 12 cores.}
  \label{fig:12Cores}
 \end{figure}
 
@@ -416,7 +415,7 @@ However, recursive and D\&C approaches are rarely employed on sparse algebra and
 \label{sec:conc}
 FEM assembly is the first step of many applications, such as seismic simulation, metal forming simulation, or crash test simulation.
 Depending on the application, the FEM assembly can represent more than 80\% of the execution time.
-In the Dassault Aviation DEFMESH application, the current D\&C implementation is already faster than the original  MPI domain decomposition and overpasses in performance and scalability the state-of-the-art coloring approach.
+In the Dassault Aviation DEFMESH application, the current D\&C implementation is already faster than the original MPI domain decomposition and overpasses in performance and scalability the state-of-the-art coloring approach.
 Even without exploiting the thread level parallelism, the D\&C approach significantly improves the locality, the scalability, and the execution time.
 The MPI domain decomposition version with D\&C has a perfect strong scaling for our experimental setup.
 
