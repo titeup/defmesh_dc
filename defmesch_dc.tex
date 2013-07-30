@@ -384,31 +384,28 @@ Moreover, the L3 cache misses occurring in the solver are 23\% lower with {\tt D
 \label{sec:rw}
 
 
-Many choices are available to complete FEM assembly in parallel.
-All methods have their advantages and their limitations, depending for instance on the target architecture or the mesh size.
-Recent studies~\cite{cecka2011assembly,CPUGPUasm} investigate different ways to compute FEM assembly on CPUs and GPUs.
-
-A first method, presented in~\cite{cecka2011assembly}, consists in creating parallelism between all the non-zero entries of the system of equations.
-This method has a very fine grain thread parallelism and thus is better suited to GPUs.
-It stores, in parallel, the contributions from all elements in the global or local memory and then reduce in parallel these contributions to compute the non-zero values. By arranging the data layout, this method can provide good performance on GPUs.
-However, it suffers from bad load balancing since the number of neighboring elements used to compute non-zero values may vary.
-Due to the fast growing number of local copies, the approach is limited to relatively small test cases.
-Another variant consists in using one thread for the assembly of one non-zero value at a time.
-However, this approach leads to redundant computations of element contributions.
-
-A second method~\cite{cecka2011assembly} consists in assembling by mesh element.
-One thread is responsible for the contribution of one element.
-It can be applied to both GPUs and CPUs.
-A coloring approach~\cite{CPUfe} can be used to launch several threads in parallel on independent elements.
-This way, each thread has a good load balance per color.
-The load balancing between colors has no influence since they are serialized.
-However, bad data locality can cause poor performance as explained is Section~\ref{sec:col}.
+There are four methods in the literature for parallel FEM assembly in shared memory.
+\begin{itemize}
+\item \textit{Assembly by mesh element with coloring}~\cite{CPUfe}. This approach has been discussed in section~\ref{sec:col}.
+\item \textit{Local assembly by mesh element followed by global assembly in a reduction step}~\cite{cecka2011assembly}.
+In this approach, all elements are computed in parallel without synchronization. To avoid data races, coefficients are duplicated
+and reduced in parallel during a second phase. Since each coefficient need to be stored multiple times, this approach may be
+limited by the available memory on large meshes. Moreover, this approach increase bandwidth needs since one need to go over
+the data twice.
+\item \textit{Assembly by non-zero coefficient}~\cite{bolz2003sparse,cecka2011assembly}. This approach consists in creating parallelism
+between all the non-zero entries of the sparse matrix. This method has a very fine grain thread parallelism
+and thus is better suited to GPUs. Moreover, it induces a large amount of redundant computations.
+\item \textit{The local matrix approach}~\cite{CPUGPUasm}. In this approach, the reduction is deported to the solver phase. It
+requires no synchronization during the assembly but increases the bandwidth needs and the amount of computation in the solver.
+Moreover, it breaks the abstraction between the solver and the rest of the application.
+\end{itemize}
+One can find recent performance evaluation of all these methods on CPUs and GPUs in~\cite{CPUGPUasm,cecka2011assembly}.
 
 Divide and Conquer paradigm and recursion in general have already been explored extensively for parallel algorithm~\cite{div}.
-Martone et al.~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
+Martone \textit{et al.}~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
 Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm} according to authors results.
 D\&C algorithms have also been used to increase locality and enable task parallelism for unstructured mesh
-visulization in~\cite{tvcg10,egpgv10,hppc10} and for wave propagation in~\cite{dc_specfem}.
+visualization in~\cite{tvcg10,egpgv10,hppc10} and for wave propagation in~\cite{dc_specfem}.
 %Dongarra et al.~\cite{Dongarra} evaluate an asynchronous task based parallelism approach for well-known factorization algorithms and compare it to traditional fork-join approach.
 %A recent investigation on hybrid programming integrating task based parallelism in MPI processes have been made~\cite{MPI_task}.
 %The experiments done on a 1024 nodes cluster result in significant speed-up on several micro-benchmarks and strong scaling applications compared to MPI domain decomposition.
