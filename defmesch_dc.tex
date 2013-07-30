@@ -122,7 +122,7 @@ proposed D\&C strategy.
 \subsection{Mesh Coloring}
 \label{sec:col}
 Mesh coloring avoids race conditions by assigning a different color to the elements sharing an edge. Therefore, colors must be treated sequentially, but, as elements of a same color do not contribute to the same edges, they can safely be executed in parallel.
-Determining a minimal coloring is NP-complete, but well-known heuristics can create efficient colorings
+Determining a minimal coloring is NP-complete. However, well-known heuristics can create efficient colorings
 with only a few more colors~\cite{CPUfe}. A pseudo-code and a simple 2D coloring example are given in Figure~\ref{fig:colApp}.
 
 Coloring enables the computation of each element of a color with a simple parallel loop.
