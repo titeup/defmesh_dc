@@ -365,8 +365,8 @@ However, we observe in Figure~\ref{fig:solCurves} an average 6\% speed-up for {\
 The maximum speed-up is 10.2\% on twelve cores.
 This improvement is due to the better data locality enabled by the permutations explained in Section~\ref{sec:DCrec}.
 The L3 cache misses occurring in the solver are 23\% lower with {\tt D\&C} than with {\tt Ref}.
-To show the impact of locality, we randomly permute the data in the {\tt Ref} version of the code. We observe a degradation of 30\% in performance between random  {\tt Ref} and {\tt D\&C} and  18\% between random {\tt Ref} and {\tt Ref}.
-This result shows that the locality have a strong impact on the solver performance.
+To show the impact of locality, we randomly permute the data in the {\tt Ref} version of the code. We observe a degradation of 30\% in performance between random-{\tt Ref} and {\tt D\&C} and  18\% between random-{\tt Ref} and {\tt Ref}.
+These results show that the locality have a strong impact on the solver performance.
 
 
 %---------------------------------------------------------------------------
