@@ -88,7 +88,7 @@ Due to the irregularity of the structure and the serialization of the reduction,
  \label{fig:2Dasm}
 \end{figure}
 
-The easiest solution to handle the reductions on mesh edges is to use locks or atomic operations.
+The easiest solution to handle the reduction on mesh edges is to use locks or atomic operations.
 However, as the computation per edge is usually low, this approach is inefficient.
 The state-of-the-art approach for shared memory parallelization is mesh coloring, but it results in a bad data locality as shown in Section~\ref{sec:col}. Recent works published on parallelizing FEM assembly codes are designed for GPUs~\cite{cecka2011assembly,CPUGPUasm}
 and may not be as efficient on multicore architectures.
@@ -96,8 +96,8 @@ and may not be as efficient on multicore architectures.
 
 In this paper, we propose a new approach based on Divide and Conquer, D\&C, to parallelize the FEM assembly step.
 We evaluate this algorithm on an industrial Computational Fluid Dynamics, CFD, code from Dassault Aviation.
-This code computes the effect of mesh deformation to optimize airplane structure.
-The D\&C approach outperforms the original implementation based on domain decomposition and coloring.
+This code computes the effect of mesh deformations to optimize airplane structure.
+The D\&C approach outperforms the coloring version and the original implementation based on domain decomposition.
 
 The paper is structured as follows.
 \begin{itemize}
@@ -125,15 +125,13 @@ Mesh coloring avoids race conditions by assigning a different color to the eleme
 Determining a minimal coloring is NP-complete. However, well-known heuristics can create efficient colorings
 with only a few more colors~\cite{CPUfe}. A pseudo-code and a simple 2D coloring example are given in Figure~\ref{fig:colApp}.
 
-Coloring enables the computation of each element of a color with a simple parallel loop.
+%Coloring enables the computation of all elements of a color with a simple parallel loop.
 However, colors will cover a large part of the domain and will access almost all nodes. Thus treating one color will trigger the transfer of a large part of the mesh. 
 For each color, as large meshes do not fit in cache, we have to access the data from memory. This multiplies the bandwidth requirements by
 a factor equal to the number of colors. Since the computation is
 usually low during matrix assembly, it is primordial to save bandwidth for optimal performance. This is the goal of our D\&C approach.
 
 
-%Despite mesh coloring is an efficient approach for vector machines, it is not well suited for current shared memory parallel architectures.
-%Sorting the elements by color improves the spatial locality and vectorization. 
 
 \begin{SaveVerbatim}[]{VerbCol}
 NodeToElem = build_node_element (ElemToNode)
@@ -148,7 +146,7 @@ For each color C in colors
 
 \begin{figure}[htp]
 \subfigure[\label{fig:example_coloring}Example of a 2D coloring.]{\includegraphics[width=0.3\textwidth]{color.pdf}}
-\subfigure[\label{fig:algo_coloring}Pseudo code for coloring and assembling.]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbCol}}
+\subfigure[\label{fig:algo_coloring}Pseudo code for coloring and assembly.]{\BUseVerbatim[fontshape=it,fontsize=\footnotesize,fontfamily=courier]{VerbCol}}
 \caption{The state-of-the-art coloring approach for FEM assembly.}
 \label{fig:colApp}
 \end{figure}
@@ -158,39 +156,37 @@ For each color C in colors
 %The D\&C approach is particularly interesting for its ability to scale naturally to an increasing number of node thanks to its architecture oblivious concept.
 %Each leaves is responsible of its own data and there is a very minimal amount of sharing, avoiding costly locks and coherency protocols. 
 
-The main idea of our D\&C approach for shared memory parallelization is to enable task level parallelism while preserving good data locality and minimizing synchronization cost.
-When the size of the domain increases, we increase the number of tasks and threads instead of increasing the number of MPI domains and of communication.
+The main idea of our D\&C parallelization approach is to enable shared memory parallelism while preserving a good data locality and minimizing the synchronization costs.
+When the number of cores increases, we increase the number threads instead of increasing the number of MPI domains.
 This way, we take benefit from replacing communication by data sharing.
 
 The rational is to recursively divide the work in two or more independent tasks and synchronize these tasks locally.
 This recursive approach has many advantages.
-First the recursive sharing naturally exposes high concurrency.
+First, the recursive sharing naturally exposes high concurrency.
 As long as the data-set is large enough, it is possible to produce a deeper recursive tree to get more concurrency and therefore match the higher requirement of manycore systems.
 Furthermore, unlike in the coloring approach, no global barrier is needed.
 Synchronizations are local: only nodes of a same parent in the recursive tree have to be synchronized.
-Finally, D\&C approach improves the data locality by reordering the data as shown in Section~\ref{sec:DCrec}.
+Finally, D\&C improves the data locality by reordering the data as shown in Section~\ref{sec:DCrec}.
 
 In the D\&C approach, the code will benefit from the higher locality and reuse of elements.
-Therefore all the versions using the reordering should outperform the original code.
-
-With a small number of cores, the scalability of the D\&C parallelization is expected to be equivalent to the MPI domain decomposition, since we add no significant work to the sequential path.
+Therefore all the versions using the reordering should outperform the original code. With a small number of cores, the scalability of the D\&C parallelization is expected to be equivalent to the MPI domain decomposition.
 Furthermore, contrary to the MPI approach, the D\&C algorithm complexity is independent from the number of cores and should continue scaling.
 
 
-D\&C consists of two parts described in following subsections.
-The first part is the recursive decomposition of each MPI domain and the second is the recursive execution of the FEM assembly step using Cilk.
+D\&C consists of two steps described in following subsections.
+The first step is the recursive decomposition of each MPI domain and the second step is the recursive execution of the FEM assembly using Cilk.
 
 \subsubsection{Recursive Bisection}
 \label{sec:DCrec}
 D\&C is based on topological recursive bisections of the mesh.
 As illustrated in Figure~\ref{fig:DCapp}, the left and right sub-domains created by these bisections do not share any element and can be executed in parallel.
-However, the separator elements in the middle have nodes on both sides and must be processed after the left and right sub-domains.
+However, the separator elements in the middle have edges on both sides and must be processed after the left and right sub-domains.
 The load balancing between the sub-domains is important since it influences the depth of the recursive tree.
-A balanced tree will minimize the maximum depth and thus the number of synchronization on the critical path.
+A balanced tree will minimize the maximum depth and thus the number of synchronizations on the critical path.
 Therefore, it is important to use a good partitioner to build equal sub-domains.
 In this study, we use the METIS graph partitioner~\cite{Metis}.
 
-In order to increase the data locality, we permute the nodes and the elements arrays.
+In order to increase the data locality, we permute the nodes and the elements arrays, as shown in Figure~\ref{fig:DCapp}.
 As a result, the nodes and the elements can be consecutive in memory inside each sub-domain, improving intra-task locality.
 Secondly, since the tasks distribution is following the recursive domain decomposition, we store neighboring sub-domains and their associated separator contiguously to improve locality between tasks.
 These permutations are applied to all MPI domains, therefore we renumber the nodes on the frontier so that exchanged data are consistent.
@@ -232,16 +228,16 @@ All these tasks are organized in queues and executed by \emph{worker} threads.
 For load balancing, Cilk runtime uses a work-stealing scheduler.
 When a \emph{worker} completes its queue, it can steal additional tasks from slower \emph{workers}.
 
-Once the recursive task tree, as shown in Figure~\ref{fig:DCrec}, is constructed, the Cilk implementation is straightforward.
-Following the pseudo-code in Figure~\ref{fig:DCpc}, left and right sub-domains of each node are split in two tasks and executed in parallel, as long as the recursion has not reached a leaf (domain size condition).
-When the recursion reaches the leaves, the original sequential FEM assembly routine is executed on each leaf sub-domain.
+Once the recursive task tree is constructed, as shown in Figure~\ref{fig:DCrec}, the Cilk implementation is straightforward.
+Following the pseudo-code in Figure~\ref{fig:DCpc}, left and right sub-domains of each node are split in two parallel tasks, as long as the recursion has not reached a leaf (domain size condition).
+When the recursion reaches the leaves, the original sequential FEM assembly routine is executed in parallel on each leaf sub-domain.
 The left and right tasks have to be completed before launching the separator computation. 
 
 
 When all elements are accessed in a regular loop, there is no need to use a recursive task tree.
-In this case, similarly to OpenMP, Cilk provides an easy way to parallelize loops using the { \tt cilk\_for} keyword.
+In this case, similarly to OpenMP, Cilk provides a convenient way to parallelize loops using the { \tt cilk\_for} keyword.
 By substituting the original {\tt for} with the {\tt cilk\_for} keyword, iterations of the loop are split recursively in several parallel tasks.
-For the DEFMESH application, we observe a better scalability with the {\tt cilk\_for} than with OpenMP {\tt parallel for} pragma.
+For the DEFMESH application, we observe a better scalability with the {\tt cilk\_for} than with the OpenMP {\tt parallel for} pragma.
 
 %---------------------------------------------------------------------------
 %---------------------------------------------------------------------------
