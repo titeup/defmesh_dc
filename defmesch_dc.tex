@@ -19,7 +19,7 @@
 \begin{frontmatter}              % The preamble begins here.
 
 %\pretitle{Pretitle}
-\title{Divide and Conquer Parallelization of Finite Element Methods Assembly}
+\title{Divide and Conquer Parallelization of Finite Element Method Assembly}
 \runningtitle{D\&C Assembly}
 %\subtitle{Subtitle}
 
@@ -41,7 +41,7 @@ Relying solely on domain decomposition and distributed memory parallelism can li
 At scale, a larger number of smaller domains can lead to an increased communication volume and to load balancing issues.
 Moreover, the decreasing memory per core is not compatible with the memory overhead of a finer domain decomposition.
 A popular alternative is to use shared memory parallelism in addition to the domain decomposition.
-In the context of Finite Element Methods, FEM, one of the challenging steps to parallelize in shared memory is the matrix assembly.
+In the context of Finite Element Method, FEM, one of the challenging steps to parallelize in shared memory is the matrix assembly.
 In this paper, we propose and evaluate a Divide and Conquer, D\&C, algorithm to efficiently parallelize the FEM assembly.
 We compare this hybrid approach using D\&C to the pure domain decomposition and to a state-of-the-art hybrid approach using mesh coloring.
 Our target application is an industrial fluid dynamics code, developed by Dassault Aviation, parallelized with MPI domain decomposition.
@@ -74,7 +74,7 @@ At scale, a larger number of smaller domains can lead to an increased communicat
 Moreover, the decrease of the memory per core is not compatible with the memory overhead of a finer domain decomposition.
 A popular alternative is to use shared memory parallelism in addition to the domain decomposition.
 
-In the context of Finite Element Methods, FEM, one of the challenging steps to parallelize in shared memory is the matrix assembly.
+In the context of Finite Element Method, FEM, one of the challenging steps to parallelize in shared memory is the matrix assembly.
 This step builds from the mesh a sparse matrix describing the linear system of equations.
 A simple FEM assembly illustration of a 2D regular mesh is presented in Figure~\ref{fig:2Dasm} with the associated sparse matrix.
 The non-zero values of the matrix correspond to the edges of the mesh. These values are the reduction of neighboring elements contribution.
@@ -114,7 +114,7 @@ The paper is structured as follows.
 \section{FEM Assembly Parallelization Using Shared Memory}
 \label{sec:assembly}
 
-Matrix assembly is common in most scientific applications using finite element methods. 
+Matrix assembly is common in most scientific applications using finite element method. 
 To parallelize the assembly step using shared memory, we consider two different approaches, a state-of-the-art coloring approach and our
 proposed D\&C strategy.
 
