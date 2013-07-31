@@ -343,7 +343,7 @@ For any problem size, using D\&C, we can increase the number of partitions so th
 When focusing on twelve cores, see Figure~\ref{fig:12CoresA}, all combinations of the {\tt D\&C} version are faster than {\tt Ref}. In all variants, the {\tt Coloring} version is the slowest one. This may be due to a bad cache utilization as illustrated in Figure~\ref{fig:12CoresB}. A maximum speed-up of twofold is reached for the MPI domain decomposition version using the D\&C permutation to improve the locality. On the hybrid {\tt D\&C} version we gain a 14\% speed-up over {\tt Ref}.
 
 
-These first results are encouraging and we expect to match the ideal scaling when the separators will be parallelized.
+These first results are encouraging and we expect to match the ideal scaling with the hybrid {\tt D\&C} version when the separators will be parallelized.
 
 \begin{figure}[t]
  \subfigure[Elasticity execution time]{\label{fig:12CoresA}\includegraphics[width=0.4\textwidth]{graph_R/Elasticity_asm_time_12_cores.pdf}}
@@ -365,7 +365,7 @@ However, we observe in Figure~\ref{fig:solCurves} an average 6\% speed-up for {\
 The maximum speed-up is 10.2\% on twelve cores.
 This improvement is due to the better data locality enabled by the permutations explained in Section~\ref{sec:DCrec}.
 The L3 cache misses occurring in the solver are 23\% lower with {\tt D\&C} than with {\tt Ref}.
-To show the impact of locality, we randomly permute the data in the {\tt Ref} version of the code. We observe degradation of 30\% performance between random  {\tt Ref} and {\tt D\&C} and  18\% between {\tt random} and {\tt Ref}.
+To show the impact of locality, we randomly permute the data in the {\tt Ref} version of the code. We observe a degradation of 30\% in performance between random  {\tt Ref} and {\tt D\&C} and  18\% between random {\tt Ref} and {\tt Ref}.
 This result shows that the locality have a strong impact on the solver performance.
 
 
