@@ -44,9 +44,9 @@ A popular alternative is to use shared memory parallelism in addition to the dom
 In the context of Finite Element Method, FEM, one of the challenging steps to parallelize in shared memory is the matrix assembly.
 In this paper, we propose and evaluate a Divide and Conquer, D\&C, algorithm to efficiently parallelize the FEM assembly.
 We compare this hybrid approach using D\&C to the pure domain decomposition and to a state-of-the-art hybrid approach using mesh coloring.
-Our target application is an industrial fluid dynamics code, developed by Dassault Aviation, parallelized with MPI domain decomposition.
+Our target application is an industrial fluid dynamics code, developed by Dassault Aviation and parallelized with MPI domain decomposition.
 The original Fortran code has been modified with minimum intrusion. Our D\&C approach uses task parallelism with Intel Cilk+.
-Preliminary results show good data locality and a 14\% performance improvement on a 12 cores 2 sockets Westmere-EP node.
+Preliminary results show a good data locality and a 14\% performance improvement on a 12 cores 2 sockets Westmere-EP node.
 \end{abstract}
 
 \begin{keyword}
@@ -77,9 +77,9 @@ A popular alternative is to use shared memory parallelism in addition to the dom
 In the context of Finite Element Method, FEM, one of the challenging steps to parallelize in shared memory is the matrix assembly.
 This step builds from the mesh a sparse matrix describing the linear system of equations.
 A simple FEM assembly illustration of a 2D regular mesh is presented in Figure~\ref{fig:2Dasm} with the associated sparse matrix.
-The non-zero values of the matrix correspond to the edges of the mesh. These values are the reduction of neighboring elements contribution.
+The non-zero values of the matrix correspond to the edges between two nodes of the mesh. These values are the reduction of neighboring elements contribution.
 In Figure~\ref{fig:2Dasm}, $(N1,N2) = E1 + E2$. This matrix is sparse and symmetrical, thus we only need to store the non-zero values in the lower triangle.
-In 3D, even with a fix number of edges per element, the number of neighboring elements can be arbitrarily large.
+In 3D, even with a fixed number of edges per element, the number of neighboring elements can be arbitrarily large.
 Due to the irregularity of the structure and the serialization of the reduction, the FEM assembly cannot be parallelized using a simple parallel loop.
 
 \begin{figure}[tp]
@@ -121,15 +121,13 @@ proposed D\&C strategy.
 
 \subsection{Mesh Coloring}
 \label{sec:col}
-Mesh coloring avoids race conditions by assigning a different color to the elements sharing an edge. Therefore, these colors must be treated sequentially. But, as elements of a same color do not contribute to the same edges, these elements can safely be executed in parallel.
+Mesh coloring avoids race conditions by assigning a different color to the elements sharing an edge. Therefore, these colors must be treated sequentially. But, as elements of a same color do not contribute to the same edges, these elements can be safely executed in parallel.
 Determining a minimal coloring is NP-complete. However, well-known heuristics can create efficient colorings
 with only a few more colors~\cite{CPUfe}. A pseudo-code and a simple 2D coloring example are given in Figure~\ref{fig:colApp}.
 
 Coloring enables the computation of each element of a color with a simple parallel loop.
-However, colors will cover a large part of the domain and will access all mesh 
-points. Thus treating one color will trigger the transfer of a large part
-of the mesh. As large meshes do not fit in cache, for each color this transfer
-have to be done from memory. This multiplies the bandwidth requirements by
+However, colors will cover a large part of the domain and will access almost all nodes. Thus treating one color will trigger the transfer of a large part of the mesh. 
+For each color, as large meshes do not fit in cache, we have to access the data from memory. This multiplies the bandwidth requirements by
 a factor equal to the number of colors. Since the computation is
 usually low during matrix assembly, it is primordial to save bandwidth for optimal performance. This is the goal of our D\&C approach.
 
@@ -392,7 +390,7 @@ We identify four main methods in the literature for parallel FEM assembly in sha
 \item \textit{Local assembly by mesh element followed by global assembly in a reduction step}~\cite{cecka2011assembly}.
 In this approach, all elements are computed in parallel without synchronization. To avoid data races, coefficients are duplicated
 and reduced in parallel during a second phase. Since each coefficient needs to be stored multiple times, this approach may be
-limited by the available memory. Moreover, this approach increases bandwidth requirements since data have to be accessed twice.
+limited by the available memory. Moreover, this approach increases the bandwidth requirements since the data have to be accessed twice.
 
 \item \textit{Assembly by non-zero coefficient}~\cite{bolz2003sparse,cecka2011assembly}. This approach consists in creating parallelism
 between all the non-zero entries of the sparse matrix. This method has a very fine grain thread parallelism
@@ -406,7 +404,7 @@ Moreover, it breaks the abstraction between the solver and the rest of the appli
 
 Recent performance evaluation of all these methods on CPUs and GPUs can be found in~\cite{cecka2011assembly,CPUGPUasm}.
 
-Divide and Conquer paradigm and recursion in general have already been explored extensively for parallel algorithm~\cite{div}.
+Divide and Conquer paradigm and recursion in general have been explored extensively for parallel algorithm~\cite{div}.
 Martone \textit{et al.}~\cite{RSBasm} describe a matrix assembly approach for recursive sparse blocks (RSB) matrix on CPUs.
 Despite this format can provide good results in solver algorithms~\cite{RSBsolver}, FEM assembly on RSB matrix is memory-bandwidth bound~\cite{RSBasm} according to authors results.
 D\&C algorithms have also been used to increase locality and enable task parallelism for unstructured mesh
@@ -425,9 +423,9 @@ visualization in~\cite{tvcg10,egpgv10,hppc10} and for wave propagation in~\cite{
 \label{sec:conc}
 FEM assembly is the first step of many applications, such as seismic simulation, metal forming simulation, or crash test simulation.
 Depending on the application, the FEM assembly can represent more than 80\% of the execution time.
-In the Dassault Aviation DEFMESH application, the current D\&C implementation is already faster than the original MPI domain decomposition and overpasses in performance and scalability the state-of-the-art coloring approach.
+In the Dassault Aviation DEFMESH application, the current D\&C implementation is faster than the original MPI domain decomposition and overpasses in performance and scalability the state-of-the-art coloring approach.
 Even without exploiting the thread level parallelism, the D\&C approach significantly improves the locality, the scalability, and the execution time.
-The MPI domain decomposition version with D\&C has a perfect strong scaling for our experimental setup.
+Indeed, the MPI domain decomposition version with D\&C has a perfect strong scaling for our experimental setup.
 
 As a future work, we plan to parallelize the separator in the D\&C FEM assembly and experiment on a larger number of cores.
 We strongly believe that D\&C will provide good performances on new manycores such as Xeon Phi.
